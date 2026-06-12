@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditor DRE | Dashboard de Conciliação Analítica</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+
+    <style>
+        :root {
+            /* Paleta Corporativa Dashboard */
+            --bg-body: #eef2f7;
+            --bg-card: #ffffff;
+            --text-main: #1a2c3e;
+            --text-muted: #4a627a;
+            --primary: #1f5e8c;
+            --primary-hover: #0e4162;
+            --border-color: #e0e9f0;
+            --border-highlight: #cbdde9;
+            
+            --success: #2a7f6e;
+            --success-bg: #e6f4f1;
+            --danger: #e74c3c;
+            --danger-bg: #fceceb;
+            --warning: #f1c40f;
+            
+            --radius-card: 28px;
+            --radius-input: 18px;
+            --radius-pill: 40px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+
+        body { background: var(--bg-body); color: var(--text-main); padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+        /* --- HEADER --- */
+        .header-with-icon { display: flex; align-items: center; gap: 12px; margin-bottom: 0.2rem; flex-wrap: wrap; }
+        .header-with-icon svg { width: 48px; height: 48px; }
+        h1 { font-size: 1.8rem; font-weight: 700; margin: 0; color: var(--primary); }
+        .sub { color: var(--text-muted); margin-bottom: 1rem; border-left: 3px solid #2c7da0; padding-left: 1rem; font-size: 0.95rem; }
+
+        /* --- CARDS & PANELS --- */
+        .card-panel {
+            background: var(--bg-card); border-radius: var(--radius-card); padding: 1.5rem 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--border-color);
+        }
+
+        /* --- UPLOADS --- */
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .upload-box {
+            position: relative; border: 2px dashed var(--border-highlight); border-radius: var(--radius-input);
+            background: #fdfdfd; padding: 20px; transition: 0.3s; display: flex; flex-direction: column; gap: 10px;
+        }
+        .upload-box:hover { border-color: var(--primary); background: #e8f0f5; }
+        .upload-box h3 { font-size: 1.05rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0; }
+        .upload-box p { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+        input[type="file"] { font-family: 'Fira Code', monospace; font-size: 0.85rem; cursor: pointer; width: 100%; }
+
+        /* --- BOTOES --- */
+        .button-group { display: flex; gap: 12px; justify-content: center; margin: 10px 0; }
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 12px 28px;
+            border-radius: var(--radius-pill); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+            display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(31,94,140,0.2);
+        }
+        .btn:hover:not(:disabled) { background: var(--primary-hover); transform: scale(0.98); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        .btn-imprimir { background: #4a627a; }
+        .btn-imprimir:hover:not(:disabled) { background: #2c3e50; }
+
+        #loading { display: none; color: var(--primary); font-weight: bold; font-size: 0.9rem; text-align: center; }
+
+        /* --- KPIs --- */
+        .kpi-grid { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+        .kpi {
+            background: var(--bg-card); border-radius: 24px; padding: 1rem 1.4rem;
+            flex: 1 1 200px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); border: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+        }
+        .kpi-label { font-size: 0.75rem; text-transform: uppercase; color: #5b7f9b; font-weight: 700; letter-spacing: 0.5px;}
+        .kpi-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); line-height: 1.2; margin-top: 5px; }
+        .kpi-value.danger { color: var(--danger); }
+        .kpi-value.success { color: var(--success); }
+        .kpi-subtext { font-size: 0.68rem; color: #7c94ab; margin-top: 6px; font-weight: 500; line-height: 1.3; }
+
+        /* --- TABELA DE AUDITORIA --- */
+        .table-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border-color); background: white; }
+        table { width: 100%; border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 0.85rem; }
+        th, td { padding: 10px 16px; text-align: right; border-bottom: 1px solid #e9f0f5; }
+        
+        th { background: #f4fafd; color: #1a5d7d; font-weight: 700; border-bottom: 2px solid var(--border-highlight); position: sticky; top: 0; z-index: 10; font-family: 'Inter', sans-serif;}
+        th:first-child, td:first-child { text-align: left; font-family: 'Inter', sans-serif; }
+        th:first-child { z-index: 20; }
+        tr:hover td { background-color: #f8fbff; }
+
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-ok { background-color: var(--success-bg); color: var(--success); border: 1px solid #a3d9cf; }
+        .status-erro { background-color: var(--danger-bg); color: var(--danger); border: 1px solid #f5b7b1; }
+        .status-na { background-color: #f0f4f8; color: #7c94ab; border: 1px solid #cbdde9; }
+
+        .diff-erro { color: var(--danger); font-weight: 800; }
+        .diff-ok { color: var(--success); font-weight: 600; }
+
+        /* --- HIERARQUIA / DRILL-DOWN --- */
+        .btn-expand {
+            background: var(--primary); border: none; border-radius: 6px;
+            width: 24px; height: 24px; line-height: 22px; text-align: center;
+            cursor: pointer; font-weight: 800; color: #ffffff;
+            margin-right: 12px; display: inline-flex; justify-content: center; align-items: center;
+            transition: 0.2s; flex-shrink: 0; box-shadow: 0 2px 4px rgba(31,94,140,0.2);
+        }
+        .btn-expand:hover { background: var(--primary-hover); transform: scale(1.05); }
+        .btn-expand.open { background: var(--danger); box-shadow: none; } 
+        
+        .row-totalizador td { background-color: #f0f5fa !important; font-weight: 800; border-top: 2px solid var(--primary); color: #0e4162; font-size: 0.95rem; }
+        
+        .conta-sintetica td { background-color: #ffffff; font-weight: 700; color: #1f5e8c; border-top: 1px solid var(--border-highlight); }
+        .conta-sintetica td:first-child .account-label { font-size: 0.9rem; }
+        
+        .conta-analitica td { color: #4a627a; }
+        .conta-analitica td:first-child .account-label { padding-left: 36px; font-weight: 500; font-size: 0.85rem; }
+
+        /* Bloco Expandido (Conexão Visual) */
+        tr.parent-expanded td { background-color: #e8f0f5 !important; border-bottom: 2px solid var(--primary); color: #0e4162; }
+        tr.parent-expanded td:first-child { box-shadow: inset 5px 0 0 0 var(--primary); }
+
+        .detail-row td { background-color: #f4fafd !important; border-bottom: 1px dashed var(--border-highlight); color: #4a627a; font-size: 0.8rem; }
+        .detail-row td:first-child { padding-left: 70px; font-weight: 600; box-shadow: inset 5px 0 0 0 var(--primary); }
+        .detail-row.last-child td { border-bottom: 2px solid var(--primary) !important; }
+
+        .detail-empty { color: #cbdde9; }
+        .val-negative { color: var(--danger); font-weight: 600; font-family: 'Fira Code', monospace; }
+        .val-positive { font-weight: 500; font-family: 'Fira Code', monospace; }
+
+        footer { text-align: center; font-size: 0.75rem; margin-top: 1rem; color: #7c94ab; border-top: 1px solid var(--border-highlight); padding-top: 1.5rem; line-height: 1.5; }
+
+        /* --- MODO IMPRESSÃO --- */
+        @media print {
+            body { background: #fff !important; padding: 0 !important; color: #000 !important; }
+            .card-panel { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .upload-grid, .button-group, #loading, footer { display: none !important; }
+            .table-wrapper { border: none !important; overflow: visible !important; }
+            .kpi-grid { gap: 0.5rem; margin-bottom: 1rem; }
+            .kpi { border: 1px solid #ddd !important; padding: 0.5rem; border-radius: 8px !important; box-shadow: none !important; }
+            .kpi-subtext { display: none !important; } 
+            
+            table { width: 100% !important; font-size: 10px !important; }
+            th { background-color: #e6f0f9 !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 6px !important; }
+            td { padding: 4px 6px !important; border: 1px solid #ddd !important; }
+            
+            .btn-expand { display: none !important; }
+            .status-badge { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
+            .diff-erro, .val-negative { color: #000 !important; font-weight: bold !important; } 
+            
+            tr.parent-expanded td { background-color: #e8f0f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .row-totalizador td { background-color: #eef5fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .detail-row td { background-color: #f4fafd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            
+            tr.parent-expanded td:first-child, .detail-row td:first-child { box-shadow: none !important; border-left: 3px solid var(--primary) !important; }
+            tr { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-with-icon">
+        <svg viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="20" fill="#1f5e8c" />
+            <rect x="25" y="20" width="50" height="60" rx="6" fill="white" stroke="#0e4162" stroke-width="2" />
+            <line x1="35" y1="35" x2="65" y2="35" stroke="#1f5e8c" stroke-width="3" stroke-linecap="round" />
+            <line x1="35" y1="48" x2="65" y2="48" stroke="#1f5e8c" stroke-width="3" stroke-linecap="round" />
+            <line x1="35" y1="61" x2="65" y2="61" stroke="#1f5e8c" stroke-width="3" stroke-linecap="round" />
+            <circle cx="72" cy="70" r="10" fill="#ffc107" stroke="#e0a800" stroke-width="2" />
+            <line x1="66" y1="70" x2="78" y2="70" stroke="#0e4162" stroke-width="2" />
+            <line x1="72" y1="64" x2="72" y2="76" stroke="#0e4162" stroke-width="2" />
+        </svg>
+        <h1>Auditor DRE | Painel de Conciliação Analítica</h1>
+    </div>
+    <div class="sub">Motor de Extração Aprimorado • Tolerância Dinâmica • Conciliação Matriz x Filiais</div>
+
+    <div class="card-panel" id="uploadPanel">
+        <div class="upload-grid">
+            <div class="upload-box">
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 1. Arquivo Consolidado</h3>
+                <p>Referência DRE (Plano de Contas Master).</p>
+                <input type="file" id="pdfConsolidado" accept="application/pdf">
+            </div>
+
+            <div class="upload-box">
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> 2. Filiais (Não Consolidados)</h3>
+                <p>Arquivo multipáginas para cruzamento analítico.</p>
+                <input type="file" id="pdfFiliais" accept="application/pdf" multiple>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn" id="btnProcessar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Processar Malha Contábil
+            </button>
+        </div>
+        <div id="loading">Lendo páginas, alinhando coordenadas e gerando árvore analítica... Aguarde.</div>
+    </div>
+
+    <div id="resultsArea" style="display: none;">
+        
+        <div class="kpi-grid">
+            <div class="kpi">
+                <div class="kpi-label">Resultado Consolidado</div>
+                <div class="kpi-value" id="kpiResultadoMaster">R$ 0,00</div>
+                <div class="kpi-subtext">Valor do Lucro/Prejuízo Líquido final extraído do arquivo Matriz.</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Soma Filiais DRE</div>
+                <div class="kpi-value" id="kpiResultadoFiliais">R$ 0,00</div>
+                <div class="kpi-subtext">Valor acumulado do Resultado Líquido lendo todas as filiais.</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Rubricas Analisadas</div>
+                <div class="kpi-value" id="kpiTotalContas">0</div>
+                <div class="kpi-subtext">Total de linhas de contas contábeis validadas em toda a DRE.</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-label">Divergências Encontradas</div>
+                <div class="kpi-value success" id="kpiDivergencias">0</div>
+                <div class="kpi-subtext">Contas com diferença acima da tolerância contábil de R$ 0,05.</div>
+            </div>
+        </div>
+
+        <div class="card-panel" style="padding: 1rem;">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 10px;">
+                <h3 style="margin:0; font-size: 1.1rem; color: var(--primary);">📋 Matriz de Conciliação Detalhada</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); background: #f0f4f8; padding: 4px 10px; border-radius: 12px;">Tolerância: R$ 0,05</span>
+                    <button class="btn btn-imprimir" onclick="prepararImpressao()">🖨️ Imprimir</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="validationTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Estrutura Contábil DRE</th>
+                            <th style="width: 15%;">(A) Consolidado</th>
+                            <th style="width: 15%;">(B) Soma Filiais</th>
+                            <th style="width: 15%;">Diferença (A - B)</th>
+                            <th style="width: 15%; text-align: center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        ✅ <strong>Legenda de cores:</strong> Fundos azuis marcam os níveis pai. Borda esquerda azul cria agrupamento visual das filiais.<br>
+        ⚙️ Processamento 100% Client-Side. Seus dados não são enviados para nenhum servidor.
+    </footer>
+</div>
+
+<script>
+    let dynamicAccountMap = new Map();
+
+    document.getElementById('btnProcessar').addEventListener('click', async () => {
+        const fileConsolidado = document.getElementById('pdfConsolidado').files[0];
+        const filesFiliais = document.getElementById('pdfFiliais').files;
+
+        if (!fileConsolidado || filesFiliais.length === 0) {
+            alert('Erro: Selecione o Consolidado e o arquivo de Filiais.');
+            return;
+        }
+
+        toggleLoading(true);
+        dynamicAccountMap.clear(); 
+
+        try {
+            const pagesConsolidado = await extractPagesFromPDF(fileConsolidado);
+            let flatConsolidado = [];
+            pagesConsolidado.forEach(page => flatConsolidado.push(...page));
+            buildDynamicMap(flatConsolidado);
+
+            for (let i = 0; i < filesFiliais.length; i++) {
+                const pagesFilial = await extractPagesFromPDF(filesFiliais[i]);
+                pagesFilial.forEach((linhasDaPagina, pageIndex) => {
+                    const nomePagina = extrairNomeFilial(linhasDaPagina, `Filial Pág ${pageIndex + 1}`);
+                    accumulateFilialValues(linhasDaPagina, nomePagina);
+                });
+            }
+
+            renderAuditoria();
+
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao processar os PDFs. Verifique a formatação do arquivo.');
+        } finally {
+            toggleLoading(false);
+        }
+    });
+
+    function toggleLoading(isLoading) {
+        document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+        document.getElementById('btnProcessar').disabled = isLoading;
+        if (isLoading) {
+            document.getElementById('resultsArea').style.display = 'none';
+        }
+    }
+
+    // =========================================================================
+    // LÓGICA DE IMPRESSÃO
+    // =========================================================================
+    window.prepararImpressao = function() {
+        const closedBtns = document.querySelectorAll('.btn-expand:not(.open)');
+        closedBtns.forEach(btn => btn.click());
+        document.body.classList.add('print-mode');
+        
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('print-mode');
+                closedBtns.forEach(btn => btn.click());
+            }, 500);
+        }, 300);
+    };
+
+    // =========================================================================
+    // ENGINE DE EXTRAÇÃO PDF COM JANELA DESLIZANTE DE TOLERÂNCIA DE Y
+    // =========================================================================
+    async function extractPagesFromPDF(file) {
+        const typedarray = new Uint8Array(await file.arrayBuffer());
+        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        let allPages = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            // Remove itens puramente vazios
+            let items = textContent.items.filter(item => item.str.trim() !== '');
+            
+            // Ordena usando a janela deslizante de Y (Tolerância de 4 pixels de desalinhamento)
+            items.sort((a, b) => {
+                if (Math.abs(b.transform[5] - a.transform[5]) > 4) {
+                    return b.transform[5] - a.transform[5];
+                }
+                return a.transform[4] - b.transform[4];
+            });
+
+            let pageLines = [];
+            let currentLine = [];
+            let currentY = null;
+
+            items.forEach(item => {
+                if (currentY === null) {
+                    currentY = item.transform[5];
+                    currentLine.push(item);
+                } else if (Math.abs(currentY - item.transform[5]) <= 4) {
+                    currentLine.push(item);
+                } else {
+                    currentLine.sort((a, b) => a.transform[4] - b.transform[4]);
+                    pageLines.push(currentLine.map(i => i.str.trim()).join(' '));
+                    currentY = item.transform[5];
+                    currentLine = [item];
+                }
+            });
+            if (currentLine.length > 0) {
+                currentLine.sort((a, b) => a.transform[4] - b.transform[4]);
+                pageLines.push(currentLine.map(i => i.str.trim()).join(' '));
+            }
+            
+            allPages.push(pageLines);
+        }
+        return allPages;
+    }
+
+    function extrairNomeFilial(linhas, fallback) {
+        let textoFilial = "", complemento = "";
+        for (let i = 0; i < Math.min(20, linhas.length); i++) {
+            const linha = linhas[i];
+            if (!textoFilial && linha.match(/Filial:\s*[\d,]+/i)) textoFilial = linha.trim();
+            if (textoFilial && !linha.includes('Filial:') && !linha.includes('Período') && !linha.includes('Tela:') && !linha.includes('CULTURAMA') && !linha.includes('Demonstrativo') && !linha.includes('Página') && !linha.toLowerCase().includes('valores expressos') && linha.length > 3) {
+                if (!linha.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}/)) { complemento = linha.trim(); break; }
+            }
+        }
+        let nomeFinal = textoFilial || fallback;
+        if (textoFilial && complemento) {
+            if (textoFilial.toUpperCase().includes(complemento.substring(0, 5).toUpperCase())) nomeFinal = textoFilial;
+            else nomeFinal = `${textoFilial} - ${complemento}`;
+        }
+        nomeFinal = nomeFinal.split(/Valores expressos/i)[0].trim();
+        if (nomeFinal.endsWith('-')) nomeFinal = nomeFinal.substring(0, nomeFinal.length - 1).trim();
+        return nomeFinal;
+    }
+
+    // =========================================================================
+    // O CORAÇÃO DO AUDITOR: REGEX ROBUSTO E CHAVE NORMALIZADA
+    // =========================================================================
+    function parseDRELine(line) {
+        // Regex captura a última cadeia monetária da linha, tolerando os erros comuns do FastReport
+        // Ex: "1.000,00", "-1.000,00", "(1.000,00)", "1.000,00()", "1.000,00 (-)"
+        const numRegex = /((?:[\-\(]\s*)?\d{1,3}(?:\.\d{3})*(?:,\d{2})(?:\s*[\-\)]|\s*\(\s*\))?)\s*$/;
+        const match = line.match(numRegex);
+        
+        if (match) {
+            const rawValue = match[1];
+            let label = line.replace(rawValue, '').trim().replace(/[\.]+$/, '').trim();
+            
+            if (label.length > 3 && /[a-zA-Z]/.test(label)) {
+                
+                // Extrai apenas dígitos e vírgula para parseFloat seguro
+                let valStr = rawValue.replace(/[^0-9,]/g, '').replace(',', '.');
+                let numericValue = parseFloat(valStr);
+                
+                // Trata as diversas máscaras de negativo (incluindo o "()" no fim da linha)
+                if (rawValue.includes('(') || rawValue.includes('-') || rawValue.includes(')')) {
+                    numericValue = -Math.abs(numericValue);
+                }
+                
+                // Classifica como analítica caso tenha a máscara contábil
+                const isAnalitica = /^\d\.\d{2}\.\d{2}\.\d{2}/.test(label);
+                
+                // CRUCIAL: Remove o código "3.01.02.01" do label para usar como Chave Limpa
+                let cleanLabel = label;
+                if (isAnalitica) {
+                    cleanLabel = label.replace(/^\d\.\d{2}\.\d{2}\.\d{2}/, '').trim();
+                }
+
+                return { 
+                    label: label, 
+                    cleanLabel: cleanLabel, 
+                    value: numericValue, 
+                    isAnalitica: isAnalitica 
+                };
+            }
+        }
+        return null;
+    }
+
+    // Normalizador que remove todos os acentos e padroniza para upper case, garantindo match 100%
+    const normalizeKey = (str) => {
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, "") 
+                  .replace(/[^A-Z0-9\(\)\-\=\/]/gi, '')
+                  .toUpperCase();
+    };
+
+    function buildDynamicMap(linhas) {
+        linhas.forEach(line => {
+            const parsed = parseDRELine(line);
+            if (parsed) {
+                // Utiliza a chave limpa (sem numeração estrutural)
+                const key = normalizeKey(parsed.cleanLabel);
+                
+                if (!dynamicAccountMap.has(key)) {
+                    dynamicAccountMap.set(key, {
+                        originalLabel: parsed.label, // Mantemos a numeração apenas para exibição
+                        consolidadoValue: parsed.value,
+                        filiaisAcumulado: 0,
+                        filiaisDetail: [],
+                        isAnalitica: parsed.isAnalitica
+                    });
+                } else {
+                    dynamicAccountMap.get(key).consolidadoValue += parsed.value;
+                }
+            }
+        });
+    }
+
+    function accumulateFilialValues(linhasDaPagina, nomeFilial) {
+        linhasDaPagina.forEach(line => {
+            const parsed = parseDRELine(line);
+            if (parsed) {
+                const key = normalizeKey(parsed.cleanLabel);
+                
+                if (dynamicAccountMap.has(key)) {
+                    const conta = dynamicAccountMap.get(key);
+                    conta.filiaisAcumulado += parsed.value;
+                    
+                    conta.filiaisDetail.push({
+                        nome: nomeFilial,
+                        valor: parsed.value
+                    });
+                }
+            }
+        });
+    }
+
+    function formatBRL(valor) {
+        if (valor === 0) return 'R$ 0,00';
+        const formatted = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(valor));
+        return valor < 0 ? `(R$ ${formatted})` : `R$ ${formatted}`;
+    }
+
+    window.toggleDetails = function(btn, detailClass) {
+        const rows = document.querySelectorAll('.' + detailClass);
+        if (rows.length === 0) return;
+        
+        const isHidden = rows[0].style.display === 'none';
+        rows.forEach(r => r.style.display = isHidden ? 'table-row' : 'none');
+        
+        const parentRow = btn.closest('tr');
+        
+        if (isHidden) {
+            btn.textContent = '−';
+            btn.classList.add('open');
+            if(parentRow) parentRow.classList.add('parent-expanded');
+        } else {
+            btn.textContent = '+';
+            btn.classList.remove('open');
+            if(parentRow) parentRow.classList.remove('parent-expanded');
+        }
+    };
+
+    function renderAuditoria() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        let index = 0;
+        let divergenciasCount = 0;
+        let finalConsolidado = 0;
+        let finalFiliais = 0;
+
+        for (let [key, data] of dynamicAccountMap) {
+            index++;
+            const safeClass = 'detalhe-conta-' + index;
+            const diferenca = Math.round((data.consolidadoValue - data.filiaisAcumulado) * 100) / 100;
+            
+            let statusHtml = ''; let diffClass = '';
+
+            if (data.consolidadoValue === 0 && data.filiaisAcumulado === 0) {
+                statusHtml = '<span class="status-badge status-na">N/A</span>';
+            } else if (Math.abs(diferenca) <= 0.05) {
+                statusHtml = '<span class="status-badge status-ok">Conciliado</span>';
+                diffClass = 'diff-ok';
+            } else {
+                statusHtml = '<span class="status-badge status-erro">Divergente</span>';
+                diffClass = 'diff-erro';
+                divergenciasCount++;
+            }
+
+            const isTotalizador = key.includes('(=)') || key.includes('LUCRO') || key.includes('RESULTADO') || key.includes('LIQUIDA');
+            
+            // Tenta pegar o último resultado líquido para os KPIs mestre
+            if (key.includes('RESULTADO') && (key.includes('LIQUIDO') || key.includes('LQUIDO'))) {
+                finalConsolidado = data.consolidadoValue;
+                finalFiliais = data.filiaisAcumulado;
+            }
+
+            let rowStyleClass = '';
+            if (isTotalizador) rowStyleClass = 'row-totalizador';
+            else if (data.isAnalitica) rowStyleClass = 'conta-analitica';
+            else rowStyleClass = 'conta-sintetica';
+
+            const colorClassA = data.consolidadoValue < 0 ? 'val-negative' : 'val-positive';
+            const colorClassB = data.filiaisAcumulado < 0 ? 'val-negative' : 'val-positive';
+
+            const btnExpandHtml = data.filiaisDetail.length > 0 
+                ? `<button class="btn-expand" onclick="toggleDetails(this, '${safeClass}')" title="Ver Composição">+</button>`
+                : `<span style="display:inline-block; width: 36px;"></span>`;
+
+            tbody.innerHTML += `
+                <tr class="${rowStyleClass}">
+                    <td>
+                        <div style="display:flex; align-items:center;">
+                            ${btnExpandHtml}
+                            <span class="account-label">${data.originalLabel}</span>
+                        </div>
+                    </td>
+                    <td class="${colorClassA}">${formatBRL(data.consolidadoValue)}</td>
+                    <td class="${colorClassB}">${formatBRL(data.filiaisAcumulado)}</td>
+                    <td class="${diffClass}">${formatBRL(diferenca)}</td>
+                    <td style="text-align: center;">${statusHtml}</td>
+                </tr>
+            `;
+
+            if (data.filiaisDetail.length > 0) {
+                let detalhesHtml = '';
+                const totalFiliais = data.filiaisDetail.length;
+                data.filiaisDetail.forEach((filial, fIndex) => {
+                    const colorVal = filial.valor < 0 ? 'val-negative' : 'val-positive';
+                    const isLastClass = (fIndex === totalFiliais - 1) ? 'last-child' : '';
+                    detalhesHtml += `
+                        <tr class="detail-row ${safeClass} ${isLastClass}" style="display: none;">
+                            <td>↳ ${filial.nome}</td>
+                            <td class="detail-empty">-</td>
+                            <td class="${colorVal}">${formatBRL(filial.valor)}</td>
+                            <td class="detail-empty">-</td>
+                            <td class="detail-empty">-</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML += detalhesHtml;
+            }
+        }
+
+        // Popula KPIs Superiores
+        document.getElementById('kpiResultadoMaster').textContent = formatBRL(finalConsolidado);
+        document.getElementById('kpiResultadoMaster').className = 'kpi-value ' + (finalConsolidado < 0 ? 'danger' : 'success');
+        
+        document.getElementById('kpiResultadoFiliais').textContent = formatBRL(finalFiliais);
+        document.getElementById('kpiResultadoFiliais').className = 'kpi-value ' + (finalFiliais < 0 ? 'danger' : 'success');
+
+        document.getElementById('kpiTotalContas').textContent = dynamicAccountMap.size;
+        
+        const badgeDivergencia = document.getElementById('kpiDivergencias');
+        badgeDivergencia.textContent = divergenciasCount;
+        badgeDivergencia.className = 'kpi-value ' + (divergenciasCount > 0 ? 'danger' : 'success');
+
+        document.getElementById('resultsArea').style.display = 'block';
+    }
+</script>
+</body>
+</html>
