@@ -49,10 +49,14 @@
         /* --- BOTOES --- */
         .button-group { display: flex; gap: 12px; justify-content: center; margin: 15px 0 5px 0; }
         .btn { background: var(--primary); color: white; border: none; padding: 12px 28px; border-radius: var(--radius-pill); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(31,94,140,0.2); }
-        .btn:hover:not(:disabled) { background: var(--primary-hover); transform: scale(0.98); }
+        .btn:hover:not(:disabled) { transform: scale(0.98); }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        
         .btn-imprimir { background: #4a627a; }
         .btn-imprimir:hover:not(:disabled) { background: #2c3e50; }
+
+        .btn-danger { background: #e74c3c; box-shadow: 0 4px 10px rgba(231,76,60,0.2); }
+        .btn-danger:hover:not(:disabled) { background: #c0392b; }
 
         #loading { display: none; color: var(--primary); font-weight: bold; font-size: 0.9rem; text-align: center; }
 
@@ -98,7 +102,6 @@
         .btn-expand:hover { background: var(--primary-hover); transform: scale(1.05); }
         .btn-expand.open { background: var(--danger); box-shadow: none; } 
         
-        /* Botão Verde para as Fórmulas */
         .btn-expand.is-formula-btn { background: var(--success); }
         .btn-expand.is-formula-btn:hover { background: #216658; }
         .btn-expand.is-formula-btn.open { background: var(--danger); }
@@ -129,11 +132,9 @@
 
         footer { text-align: center; font-size: 0.75rem; margin-top: 1rem; color: #7c94ab; border-top: 1px solid var(--border-highlight); padding-top: 1.5rem; line-height: 1.5; }
 
-        /* Badges */
+        /* Badges e Memória */
         .badge-tipo { padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; background: #e0e9f0; color: #1f5e8c; display: inline-block; white-space: nowrap; margin-left: 10px; }
         .badge-tipo.formula { background: #e6f4f1; color: #2a7f6e; border: 1px solid #a3d9cf; }
-        
-        /* Formatação Código de Linha ERP e Memória de Cálculo */
         .codigo-erp { color: #8ba3bb; font-family: 'Fira Code', monospace; font-size: 0.8rem; margin-right: 6px; }
         .memoria-box { background: #fdfdfd; border: 1px dashed var(--border-highlight); border-radius: 8px; padding: 12px; margin-top: 8px; font-family: 'Fira Code', monospace; }
 
@@ -189,20 +190,20 @@
     <div class="card-panel" id="uploadPanel">
         <div class="upload-grid">
             <div class="upload-box">
-                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 1. DRE Consolidado (Matriz)</h3>
-                <p>Referência primária para extração de valores do DRE.</p>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 1. DRE Principal (Matriz ou Filial)</h3>
+                <p>Referência primária para extração de valores (Obrigatório).</p>
                 <input type="file" id="pdfConsolidado" accept="application/pdf">
             </div>
 
             <div class="upload-box">
-                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> 2. DRE Filiais</h3>
-                <p>Arquivo multipáginas (Não Consolidado) para montar o Drill-down.</p>
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> 2. DREs Secundários (Opcional)</h3>
+                <p>Anexe PDFs de filiais apenas se quiser realizar o cruzamento.</p>
                 <input type="file" id="pdfFiliais" accept="application/pdf" multiple>
             </div>
             
             <div class="upload-box" style="border-color: #2a7f6e; background: #f9fdfc;">
                 <h3 style="color: #2a7f6e;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> 3. Regras ERP (CSV Opcional)</h3>
-                <p>Exporte a Grid de Fórmulas do ERP em formato .CSV para habilitar a Prova Real Matemática.</p>
+                <p>Exporte a Grid de Fórmulas do ERP para auditar a matemática interna do PDF Principal.</p>
                 <input type="file" id="csvRegras" accept=".csv">
             </div>
         </div>
@@ -212,6 +213,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 Iniciar Processamento e Auditoria
             </button>
+            <button class="btn btn-danger" id="btnLimpar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Limpar Arquivos
+            </button>
         </div>
         <div id="loading">Lendo arquivos, alinhando coordenadas e aplicando recálculo... Aguarde.</div>
     </div>
@@ -219,7 +224,7 @@
     <div id="resultsArea" style="display: none;">
         
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-conciliacao', this)">1. Matriz vs Filiais</button>
+            <button class="tab-btn active" id="btnTabConciliacao" onclick="switchTab('tab-conciliacao', this)">1. Matriz vs Filiais</button>
             <button class="tab-btn" id="btnTabFormulas" onclick="switchTab('tab-formulas', this)" style="display: none;">2. Prova Real das Fórmulas (ERP)</button>
         </div>
 
@@ -275,7 +280,7 @@
         <div id="tab-formulas" class="tab-content">
             <div class="kpi-grid">
                 <div class="kpi">
-                    <div class="kpi-label">Resultado PDF (Matriz)</div>
+                    <div class="kpi-label">Resultado PDF Base</div>
                     <div class="kpi-value" id="kpiFormulaPdf">R$ 0,00</div>
                     <div class="kpi-subtext">Lucro impresso no arquivo final.</div>
                 </div>
@@ -300,7 +305,7 @@
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 10px;">
                     <h3 style="margin:0; font-size: 1.1rem; color: var(--success);">🧮 Auditoria de Fórmulas ERP (Estrutura Completa)</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="font-size: 0.75rem; color: var(--success); background: var(--success-bg); border: 1px solid #a3d9cf; padding: 4px 10px; border-radius: 12px;">Dica: Linhas verdes indicam fórmulas</span>
+                        <span style="font-size: 0.75rem; color: var(--success); background: var(--success-bg); border: 1px solid #a3d9cf; padding: 4px 10px; border-radius: 12px;">Dica: Linhas verdes indicam fórmulas matemáticas</span>
                         <button class="btn btn-imprimir" onclick="prepararImpressao()">🖨️ Imprimir Recálculo</button>
                     </div>
                 </div>
@@ -324,16 +329,23 @@
     </div>
 
     <footer>
-        ✅ <strong>Legenda de cores:</strong> Fundos azuis marcam os níveis pai. Borda esquerda azul/verde cria agrupamento visual.<br>
+        ✅ <strong>Legenda de cores:</strong> Fundos azuis marcam os níveis pai. Borda esquerda verde cria agrupamento matemático.<br>
         ⚙️ Processamento 100% Client-Side. Seus dados e regras financeiras não são enviados para nenhum servidor.
     </footer>
 </div>
 
 <script>
-    // Agora guardamos uma sequência exata para não haver duplicação de pais e filhos com mesmo nome
     let pdfSequence = [];
 
-    // Controle de Abas
+    // Limpar os campos do formulário e resetar dados
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+        document.getElementById('pdfConsolidado').value = '';
+        document.getElementById('pdfFiliais').value = '';
+        document.getElementById('csvRegras').value = '';
+        document.getElementById('resultsArea').style.display = 'none';
+        pdfSequence = [];
+    });
+
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -347,45 +359,71 @@
         const filesFiliais = document.getElementById('pdfFiliais').files;
         const fileCSV = document.getElementById('csvRegras').files[0];
 
-        if (!fileConsolidado || filesFiliais.length === 0) {
-            alert('Erro: Selecione o Consolidado e o arquivo de Filiais.');
+        if (!fileConsolidado) {
+            alert('Erro: Selecione pelo menos o DRE Principal (Upload 1).');
             return;
         }
 
         toggleLoading(true);
         pdfSequence = []; 
         document.getElementById('btnTabFormulas').style.display = 'none'; 
+        document.getElementById('btnTabConciliacao').style.display = 'none';
 
         try {
-            // 1. Processa PDF Matriz
+            // 1. Processa PDF Principal (Pode ser Matriz ou Filial)
             const pagesConsolidado = await extractPagesFromPDF(fileConsolidado);
             let flatConsolidado = [];
             pagesConsolidado.forEach(page => flatConsolidado.push(...page));
             buildPdfSequence(flatConsolidado);
 
-            // Processa PDF Filiais
-            for (let i = 0; i < filesFiliais.length; i++) {
-                const pagesFilial = await extractPagesFromPDF(filesFiliais[i]);
-                pagesFilial.forEach((linhasDaPagina, pageIndex) => {
-                    const nomePagina = extrairNomeFilial(linhasDaPagina, `Filial Pág ${pageIndex + 1}`);
-                    accumulateFilialValues(linhasDaPagina, nomePagina);
+            let hasFiliais = filesFiliais.length > 0;
+            let hasCSV = !!fileCSV;
+
+            // 2. Processa Filiais apenas se o usuário anexou
+            if (hasFiliais) {
+                for (let i = 0; i < filesFiliais.length; i++) {
+                    const pagesFilial = await extractPagesFromPDF(filesFiliais[i]);
+                    pagesFilial.forEach((linhasDaPagina, pageIndex) => {
+                        const nomePagina = extrairNomeFilial(linhasDaPagina, `Filial Pág ${pageIndex + 1}`);
+                        accumulateFilialValues(linhasDaPagina, nomePagina);
+                    });
+                }
+                document.getElementById('btnTabConciliacao').style.display = 'inline-block';
+                renderAuditoria();
+            }
+
+            // 3. Processa Regras CSV (Opcional) com uso de Promessa para evitar falhas assíncronas
+            if (hasCSV) {
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        processERPRules(e.target.result);
+                        document.getElementById('btnTabFormulas').style.display = 'inline-block';
+                        resolve();
+                    };
+                    reader.readAsText(fileCSV, 'ISO-8859-1'); 
                 });
             }
 
-            renderAuditoria();
-
-            // 2. Processa CSV de Fórmulas (Se Houver)
-            if (fileCSV) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    processERPRules(e.target.result);
-                };
-                reader.readAsText(fileCSV, 'ISO-8859-1'); 
+            // Logica inteligente para selecionar a aba padrão
+            if (!hasFiliais && hasCSV) {
+                // Se só tem a Matriz e o CSV, vai direto pra Aba de Fórmulas
+                switchTab('tab-formulas', document.getElementById('btnTabFormulas'));
+            } else if (hasFiliais) {
+                // Se tem filiais, vai para a aba de Conciliação
+                switchTab('tab-conciliacao', document.getElementById('btnTabConciliacao'));
+            } else {
+                // Se não subiu CSV nem Filial, mostra o layout do PDF processado sozinho na Aba 1
+                document.getElementById('btnTabConciliacao').style.display = 'inline-block';
+                renderAuditoria();
+                switchTab('tab-conciliacao', document.getElementById('btnTabConciliacao'));
             }
+
+            document.getElementById('resultsArea').style.display = 'block';
 
         } catch (error) {
             console.error(error);
-            alert('Erro ao processar. Verifique a formatação do arquivo.');
+            alert('Erro ao processar. Verifique a formatação dos arquivos.');
         } finally {
             toggleLoading(false);
         }
@@ -394,9 +432,7 @@
     function toggleLoading(isLoading) {
         document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
         document.getElementById('btnProcessar').disabled = isLoading;
-        if (isLoading) {
-            document.getElementById('resultsArea').style.display = 'none';
-        }
+        document.getElementById('btnLimpar').disabled = isLoading;
     }
 
     // =========================================================================
@@ -419,7 +455,7 @@
     };
 
     // =========================================================================
-    // LÓGICA DE PROCESSAMENTO DO CSV E RECÁLCULO (Aba 2) - MAPEAMENTO POR ÂNCORAS
+    // LÓGICA DE PROCESSAMENTO DO CSV E RECÁLCULO (Aba 2) - INTEGRAÇÃO PDF SEQUENCE
     // =========================================================================
     function processERPRules(csvText) {
         let lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -443,7 +479,7 @@
         let rules = [];
         let itemsMap = new Map();
 
-        // Faz o Parse inicial do CSV
+        // 1º Passo: Parseia o CSV
         for(let i=1; i<lines.length; i++) {
             let cols = lines[i].split(separator);
             let codigo = parseInt(cols[idxCod], 10);
@@ -463,23 +499,25 @@
             rules.push(item);
         }
 
-        // ORDENAÇÃO FUNDAMENTAL: A matemática DEVE seguir a ordem do ERP (Cima pra baixo)
         rules.sort((a, b) => a.ordem - b.ordem);
         rules.forEach(r => itemsMap.set(r.codigo, r));
 
-        // Mapeamento Contextual (Anchors) para não haver confusão de nomes duplicados (Ex: "OUTRAS DESPESAS")
+        // Metodologia de Âncoras e Fronteiras
         let csvKeyCounts = {};
         rules.forEach(r => { csvKeyCounts[r.normKey] = (csvKeyCounts[r.normKey] || 0) + 1; });
         
         let pdfKeyCounts = {};
-        pdfSequence.forEach(p => { pdfKeyCounts[p.key] = (pdfKeyCounts[p.key] || 0) + 1; });
+        pdfSequence.forEach(p => { 
+            let fallbackKey = p.key.replace(/^\d+/, '');
+            pdfKeyCounts[fallbackKey] = (pdfKeyCounts[fallbackKey] || 0) + 1; 
+        });
 
-        pdfSequence.forEach(p => p.matchedCsvIndex = undefined); // Reseta estado
+        pdfSequence.forEach(p => p.matchedCsvIndex = undefined);
 
-        // 1. Mapeia Âncoras Únicas
+        // 1. Mapeia Âncoras únicas
         rules.forEach((rule, csvIdx) => {
             if (csvKeyCounts[rule.normKey] === 1 && pdfKeyCounts[rule.normKey] === 1) {
-                let pdfIdx = pdfSequence.findIndex(p => p.key === rule.normKey);
+                let pdfIdx = pdfSequence.findIndex(p => p.key.replace(/^\d+/, '') === rule.normKey);
                 if (pdfIdx !== -1) {
                     rule.matchedPdfIndex = pdfIdx;
                     pdfSequence[pdfIdx].matchedCsvIndex = csvIdx;
@@ -487,7 +525,7 @@
             }
         });
 
-        // 2. Mapeia Duplicados ou Ausentes buscando apenas nas "fronteiras" das âncoras (Isola a conta 10 da 14)
+        // 2. Mapeia o resto baseando-se nas "fronteiras" das âncoras
         rules.forEach((rule, csvIdx) => {
             if (rule.matchedPdfIndex === undefined) {
                 let leftPdfIdx = -1;
@@ -501,20 +539,20 @@
                 }
                 
                 for (let i = leftPdfIdx + 1; i < rightPdfIdx; i++) {
-                    if (pdfSequence[i].key === rule.normKey && pdfSequence[i].matchedCsvIndex === undefined) {
+                    let fallbackKey = pdfSequence[i].key.replace(/^\d+/, '');
+                    if (fallbackKey === rule.normKey && pdfSequence[i].matchedCsvIndex === undefined) {
                         rule.matchedPdfIndex = i;
                         pdfSequence[i].matchedCsvIndex = csvIdx;
                         break;
                     }
                 }
             }
-            // Puxa o valor se achou no PDF
             if (rule.matchedPdfIndex !== undefined) {
                 rule.pdfValue = pdfSequence[rule.matchedPdfIndex].consolidadoValue;
             }
         });
 
-        // Resolve a Matemática de Cima para Baixo
+        // 3. Resolve a Matemática usando a "Mente" do ERP
         rules.forEach(item => {
             if (item.tipo.includes('FÓRMULA') || item.tipo.includes('FORMULA')) {
                 let calcData = evaluateFormula(item.formula, itemsMap);
@@ -527,23 +565,19 @@
         });
 
         renderTabFormulas(rules);
-        document.getElementById('btnTabFormulas').style.display = 'inline-block';
     }
 
-    // Retorna não só o valor, mas a string detalhando a matemática exata com inteligência de sinais do ERP
     function evaluateFormula(formulaStr, itemsMap) {
         if (!formulaStr) return { val: 0, mem: '' };
         
         let cleanExp = formulaStr.replace(/\([^)]+\)/g, '').trim().replace(/\s+/g, ''); 
-        
-        // Pega os blocos tipo "1", "+2", "-3"
         let tokenRegex = /([\+\-]?)(\d+)/g;
         let match;
         let result = 0;
         let memHtml = '';
 
         while ((match = tokenRegex.exec(cleanExp)) !== null) {
-            let operator = match[1] || '+'; // Se não tiver sinal explícito (ex: o primeiro número), assume +
+            let operator = match[1] || '+'; 
             let id = parseInt(match[2], 10);
             
             if (itemsMap.has(id)) {
@@ -551,25 +585,27 @@
                 let valToApply;
                 
                 if (operator === '-') {
-                    // O ERP usa "-" na fórmula quando a conta é Despesa/Dedução armazenada como Positiva, 
-                    // mas queremos forçar a subtração ignorando o sinal que veio no PDF.
                     valToApply = -Math.abs(rawVal);
                 } else {
-                    // O ERP usa "+" quando ele confia no sinal natural da conta (Ex: 14 já é negativo)
                     valToApply = rawVal;
                 }
                 
                 result += valToApply;
                 
-                // Constrói a memória de cálculo visual
                 let displaySign = valToApply < 0 ? '-' : '+';
-                if (memHtml === '' && valToApply >= 0) displaySign = ''; 
-                
                 let color = valToApply < 0 ? 'var(--danger)' : 'var(--success)';
-                // Usa Math.abs no formater para colocar o sinal manual colorido e sem parênteses
-                let cleanBrl = formatBRL(Math.abs(valToApply)).replace(/[\(\)]/g, ''); 
+                // Extrai R$ e parênteses gerados pelo formatador pra montarmos a string limpa visualmente
+                let cleanBrl = formatBRL(Math.abs(valToApply)).replace(/[R\$\(\)\s]/g, '').trim(); 
                 
-                memHtml += ` <span style="color: ${color}; font-weight: 700;">${displaySign} ${cleanBrl}</span> <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> `;
+                if (memHtml === '') {
+                    if (valToApply < 0) {
+                        memHtml += `<span style="font-weight: 700; color: var(--text-main);">-</span> `;
+                    }
+                } else {
+                    memHtml += ` <span style="font-weight: 700; color: var(--text-main);">${displaySign}</span> `;
+                }
+                
+                memHtml += `<span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${color}; font-weight: 700;">R$ ${cleanBrl}</span>`;
             }
         }
         return { val: result, mem: memHtml.trim() };
@@ -582,26 +618,25 @@
         let pdfMaster = 0;
         let calcMaster = 0;
 
-        rules.forEach((rule, index) => {
+        pdfSequence.forEach((data, index) => {
             const safeClass = 'detalhe-formula-conta-' + index;
             
-            let pdfValue = rule.pdfValue;
-            let calcValue = rule.calculatedValue; 
-            let isFormula = rule.tipo.includes('FÓRMULA') || rule.tipo.includes('FORMULA');
-            let formulaStr = rule.formula;
-            let memoryHtml = rule.memoryHtml || '';
-            let codigoTag = `[${rule.codigo}]`; 
+            // Só constrói usando regra de CSV se achou o Match pelas Âncoras
+            let rule = data.matchedCsvIndex !== undefined ? rules[data.matchedCsvIndex] : null;
             
-            let originalLabel = rule.descricao;
-            let filialDetails = [];
-            let isAnalitica = false;
+            let pdfValue = data.consolidadoValue;
+            let calcValue = pdfValue; 
+            let isFormula = false;
+            let formulaStr = '';
+            let memoryHtml = '';
+            let codigoTag = '';
 
-            // Se achou no PDF, usa os detalhes estéticos do PDF
-            if (rule.matchedPdfIndex !== undefined) {
-                let matchedPdfItem = pdfSequence[rule.matchedPdfIndex];
-                originalLabel = matchedPdfItem.originalLabel;
-                filialDetails = matchedPdfItem.filiaisDetail;
-                isAnalitica = matchedPdfItem.isAnalitica;
+            if (rule) {
+                calcValue = rule.calculatedValue;
+                isFormula = rule.tipo.includes('FÓRMULA') || rule.tipo.includes('FORMULA');
+                formulaStr = rule.formula;
+                memoryHtml = rule.memoryHtml || '';
+                codigoTag = `[${rule.codigo}]`; 
             }
 
             const diferenca = Math.round(Math.abs(pdfValue) - Math.abs(calcValue)) * 100 / 100;
@@ -618,9 +653,9 @@
                 if (isFormula) divergenciasCount++; 
             }
 
-            const isTotalizador = originalLabel.includes('(=)') || originalLabel.includes('LUCRO') || originalLabel.includes('RESULTADO') || originalLabel.includes('LIQUIDA');
+            const isTotalizador = data.originalLabel.includes('(=)') || data.originalLabel.includes('LUCRO') || data.originalLabel.includes('RESULTADO') || data.originalLabel.includes('LIQUIDA');
             
-            if (originalLabel.includes('RESULTADO') && (originalLabel.includes('LIQUIDO') || originalLabel.includes('LQUIDO'))) {
+            if (data.originalLabel.includes('RESULTADO') && (data.originalLabel.includes('LIQUIDO') || data.originalLabel.includes('LQUIDO'))) {
                 pdfMaster = pdfValue;
                 calcMaster = calcValue;
             }
@@ -628,7 +663,7 @@
             let rowStyleClass = '';
             if (isFormula) rowStyleClass = 'row-is-formula'; 
             else if (isTotalizador) rowStyleClass = 'row-totalizador';
-            else if (isAnalitica) rowStyleClass = 'conta-analitica';
+            else if (data.isAnalitica) rowStyleClass = 'conta-analitica';
             else rowStyleClass = 'conta-sintetica';
 
             let visualCalcValue = calcValue;
@@ -637,8 +672,7 @@
             const colorClassA = pdfValue < 0 ? 'val-negative' : 'val-positive';
             const colorClassB = visualCalcValue < 0 ? 'val-negative' : 'val-positive';
 
-            let hasDetails = isFormula || filialDetails.length > 0;
-
+            let hasDetails = isFormula || data.filiaisDetail.length > 0;
             const btnClass = isFormula ? 'btn-expand is-formula-btn' : 'btn-expand';
 
             const btnExpandHtml = hasDetails 
@@ -646,7 +680,7 @@
                 : `<span style="display:inline-block; width: 36px;"></span>`;
 
             let badgeHtml = isFormula ? `<span class="badge-tipo formula">Fórmula ERP</span>` : ``;
-            let codeHtml = `<span class="codigo-erp">${codigoTag}</span>`;
+            let codeHtml = codigoTag ? `<span class="codigo-erp">${codigoTag}</span>` : ``;
 
             tbody.innerHTML += `
                 <tr class="${rowStyleClass}">
@@ -654,7 +688,7 @@
                         <div style="display:flex; align-items:center;">
                             ${btnExpandHtml}
                             ${codeHtml}
-                            <span class="account-label">${originalLabel}</span>
+                            <span class="account-label">${data.originalLabel}</span>
                             ${badgeHtml}
                         </div>
                     </td>
@@ -667,6 +701,10 @@
 
             if (hasDetails) {
                 if (isFormula) {
+                    let finalResultColor = calcValue < 0 ? 'var(--danger)' : 'var(--primary)';
+                    let finalResultSign = calcValue < 0 ? '- ' : '';
+                    let cleanBrlResult = formatBRL(Math.abs(calcValue)).replace(/[R\$\(\)\s]/g, '').trim();
+
                     tbody.innerHTML += `
                         <tr class="detail-row is-formula-detail ${safeClass} last-child" style="display: none;">
                             <td>↳ Memória de Cálculo ERP:</td>
@@ -674,7 +712,7 @@
                                 <div class="memoria-box">
                                     <div style="font-size: 0.75rem; color: #1e6153; margin-bottom: 8px;"><b>Regra Original:</b> ${formulaStr}</div>
                                     <div style="color: var(--text-main); font-size: 0.85rem;">
-                                        <b>Matemática:</b> ${memoryHtml} <b style="color: var(--primary);"> = R$ ${formatBRL(Math.abs(calcValue)).replace(/[\(\)]/g, '')}</b>
+                                        <b>Matemática:</b> ${memoryHtml} <b style="color: ${finalResultColor};"> = ${finalResultSign}R$ ${cleanBrlResult}</b>
                                     </div>
                                 </div>
                             </td>
@@ -682,8 +720,8 @@
                     `;
                 } else {
                     let detalhesHtml = '';
-                    const totalFiliais = filialDetails.length;
-                    filialDetails.forEach((filial, fIndex) => {
+                    const totalFiliais = data.filiaisDetail.length;
+                    data.filiaisDetail.forEach((filial, fIndex) => {
                         const colorVal = filial.valor < 0 ? 'val-negative' : 'val-positive';
                         const isLastClass = (fIndex === totalFiliais - 1) ? 'last-child' : '';
                         detalhesHtml += `
@@ -788,7 +826,6 @@
                 if (rawValue.includes('(') || rawValue.includes('-') || rawValue.includes(')')) numericValue = -Math.abs(numericValue);
                 const isAnalitica = /^\d\.\d{2}\.\d{2}\.\d{2}/.test(label);
                 
-                // Remove o código para ser usado APENAS como Chave Limpa (Match Contextual)
                 let cleanLabel = label; 
                 if (isAnalitica) cleanLabel = label.replace(/^\d\.\d{2}\.\d{2}\.\d{2}/, '').trim();
 
@@ -808,7 +845,6 @@
             if (parsed) {
                 const key = normalizeKey(parsed.cleanLabel);
                 
-                // Evita que o mesmo item seja inserido 2x em caso de cabeçalho de quebra de página
                 if (pdfSequence.length > 0) {
                     let lastItem = pdfSequence[pdfSequence.length - 1];
                     if (lastItem.key === key && lastItem.isAnalitica === parsed.isAnalitica) return;
@@ -820,7 +856,8 @@
                     consolidadoValue: parsed.value, 
                     filiaisAcumulado: 0,
                     filiaisDetail: [], 
-                    isAnalitica: parsed.isAnalitica
+                    isAnalitica: parsed.isAnalitica,
+                    matchedCsvIndex: undefined
                 });
             }
         });
@@ -847,7 +884,7 @@
             if (foundIdx !== -1) {
                 pdfSequence[foundIdx].filiaisAcumulado += fItem.value;
                 pdfSequence[foundIdx].filiaisDetail.push({ nome: nomeFilial, valor: fItem.value });
-                cursorPdf = foundIdx + 1; // Avança o cursor
+                cursorPdf = foundIdx + 1; 
             }
         }
     }
