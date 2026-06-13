@@ -152,16 +152,8 @@
         .badge-tipo.formula { background: #e6f4f1; color: #2a7f6e; border: 1px solid #a3d9cf; }
         .codigo-erp { color: #8ba3bb; font-family: 'Fira Code', monospace; font-size: 0.75rem; margin-right: 6px; }
         
-        /* O quadro da memória */
-        .memoria-box { 
-            background: #fdfdfd; 
-            border: 1px dashed var(--border-highlight); 
-            border-radius: 6px; 
-            padding: 10px 14px; 
-            margin-top: 6px; 
-            font-family: 'Fira Code', monospace; 
-            transition: all 0.2s; 
-        }
+        /* O quadro da memória agora tem transição para animar ao ser clicado */
+        .memoria-box { background: #fdfdfd; border: 1px dashed var(--border-highlight); border-radius: 6px; padding: 10px 14px; margin-top: 6px; font-family: 'Fira Code', monospace; transition: background-color 0.2s, border-color 0.2s; }
         .memoria-box:hover {
             background-color: #f4fafd;
             border-color: #a3d9cf;
@@ -176,7 +168,7 @@
             border-radius: 4px;
             padding: 2px 6px;
             margin: -2px 0;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
             display: inline-block;
         }
         .math-token:hover { background-color: #e6f4f1; }
@@ -237,12 +229,12 @@
             .top-header, .upload-grid, .upload-tabs, .action-bar, footer, .tabs { display: none !important; }
             .tab-content { display: none !important; }
             .tab-content.active { display: block !important; } 
-            .table-wrapper { border: none !important; overflow: visible !important; }
+            .table-wrapper { border: none !important; overflow: visible !important; max-height: none !important; } 
             .kpi-grid { gap: 0.5rem; margin-bottom: 1rem; }
             .kpi { border: 1px solid #ddd !important; padding: 0.5rem; border-radius: 8px !important; box-shadow: none !important; }
             
             table { width: 100% !important; font-size: 10px !important; }
-            th { background-color: #e6f0f9 !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 4px !important; }
+            th { background-color: #e6f0f9 !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 4px !important; position: static !important; }
             td { padding: 3px 4px !important; border: 1px solid #ddd !important; }
             
             .btn-expand { display: none !important; }
@@ -372,7 +364,7 @@
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 10px;">
                     <h3 style="margin:0; font-size: 1.05rem; color: var(--success);">🧮 Auditoria de Fórmulas ERP</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">🟢 Fórmula ativa: Clique em [+] para detalhar o cálculo</span>
+                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">🟢 Linhas em verde indicam valores calculados automaticamente. Clique em [+] para ver os detalhes do cálculo.</span>
                         <button class="btn btn-imprimir" onclick="prepararImpressao()">🖨️ Imprimir</button>
                     </div>
                 </div>
@@ -439,13 +431,11 @@
 </div>
 
 <script>
-    // Memórias Isoladas para não conflitar as abas
     let currentUploadTab = 'upload-math';
     let pdfSequenceMath = [];
     let dynamicAccountMapConcil = new Map();
     let lockedHighlight = false;
 
-    // Event listener global para remover o destaque travado se clicar fora
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.math-token') && !e.target.closest('.math-token-group') && !e.target.closest('.memoria-box')) {
             lockedHighlight = false;
@@ -453,7 +443,6 @@
         }
     });
 
-    // Controles Visuais
     function clearInput(inputId) {
         document.getElementById(inputId).value = '';
         document.getElementById('btnClear-' + inputId).style.display = 'none';
@@ -473,7 +462,7 @@
         pdfSequenceMath = [];
         dynamicAccountMapConcil.clear();
         lockedHighlight = false;
-        document.querySelectorAll('.btn-clear-small').forEach(btn => btn.style.display = 'none');
+        document.querySelectorAll('.btn-clear-small').forEach(btn => display = 'none');
     });
 
     function switchUploadTab(tabId, btnElement) {
@@ -513,7 +502,6 @@
         }, 300);
     };
 
-    // --- FUNÇÕES DE HIGHLIGHT CORRIGIDAS COM SUPORTE AO AZUL DO RESULTADO ---
     window.highlightRow = function(id, formulaId, isClick = false, el = null) {
         if (lockedHighlight && !isClick) return; 
         
@@ -573,9 +561,6 @@
         document.querySelectorAll('.math-token-locked').forEach(el => el.classList.remove('math-token-locked'));
     };
 
-    // =========================================================================
-    // MASTER CONTROLLER (Processamento)
-    // =========================================================================
     document.getElementById('btnProcessar').addEventListener('click', async () => {
         let pdfMath = document.getElementById('pdfMath').files[0];
         let csvRegras = document.getElementById('csvRegras').files[0];
@@ -759,11 +744,11 @@
                 let colorRecalc = rawVal < 0 ? 'var(--danger)' : 'var(--success)';
                 let formattedOperand = formatBRL(operandValue); 
                 
-                // Trilha B - PDF Impresso (Espelhado sem recálculo)
+                // Trilha B - PDF Impresso
                 let rawPdfVal = itemsMap.get(id).pdfValue || 0;
-                let operandPdfValue = (operator === '-') ? -rawPdfVal : rawPdfVal;
-                let colorPdf = rawPdfVal < 0 ? 'var(--danger)' : 'var(--success)';
-                let formattedPdfOperand = formatBRL(operandPdfValue);
+                let operandPdfValue = (operator === '-') ? -Math.abs(rawPdfVal) : rawPdfVal;
+                let colorPdf = operandPdfValue < 0 ? 'var(--danger)' : 'var(--success)';
+                let formattedPdfOperand = formatBRL(Math.abs(rawPdfVal)); 
 
                 if (memRecalcHtml !== '') {
                     memRecalcHtml += `<span style="font-weight: 800; margin: 0 6px; color: var(--text-main);">${operator}</span>`;
@@ -785,30 +770,25 @@
         return { val: result, memRecalc: memRecalcHtml.trim(), memPdf: memPdfHtml.trim(), ids: involvedIds };
     }
 
+    // A MÁGICA ACONTECE AQUI: A TABELA AGORA É DESENHADA A PARTIR DO CSV (rules) E NÃO DO PDF
     function renderTabFormulasMath(rules, seqPdf) {
         const tbody = document.getElementById('formulasTableBody');
         tbody.innerHTML = '';
         let divergenciasCount = 0; 
 
-        seqPdf.forEach((data, index) => {
+        rules.forEach((rule, index) => {
             const safeClass = 'detalhe-formula-conta-' + index;
-            let rule = data.matchedCsvIndex !== undefined ? rules[data.matchedCsvIndex] : null;
             
-            let pdfValue = data.consolidadoValue;
-            let calcValue = pdfValue; 
-            let isFormula = false; let formulaStr = ''; let memoryRecalcHtml = ''; let memoryPdfHtml = ''; let codigoTag = ''; let involvedIdsStr = '[]';
+            let pdfValue = rule.pdfValue || 0;
+            let calcValue = rule.calculatedValue || 0; 
+            let isFormula = rule.tipo.includes('FÓRMULA') || rule.tipo.includes('FORMULA');
+            let formulaStr = rule.formula || ''; 
+            let memoryRecalcHtml = rule.memoryRecalcHtml || ''; 
+            let memoryPdfHtml = rule.memoryPdfHtml || ''; 
+            let codigoTag = `[${rule.codigo}]`; 
+            let involvedIdsStr = JSON.stringify(rule.involvedIds || []);
 
-            let trId = rule ? `id="erp-row-${rule.codigo}"` : '';
-
-            if (rule) {
-                calcValue = rule.calculatedValue;
-                isFormula = rule.tipo.includes('FÓRMULA') || rule.tipo.includes('FORMULA');
-                formulaStr = rule.formula; 
-                memoryRecalcHtml = rule.memoryRecalcHtml || ''; 
-                memoryPdfHtml = rule.memoryPdfHtml || '';
-                codigoTag = `[${rule.codigo}]`; 
-                involvedIdsStr = JSON.stringify(rule.involvedIds || []);
-            }
+            let trId = `id="erp-row-${rule.codigo}"`;
 
             const diferenca = Math.round(Math.abs(pdfValue) - Math.abs(calcValue)) * 100 / 100;
             let statusHtml = ''; let diffClass = '';
@@ -817,18 +797,20 @@
             else if (Math.abs(diferenca) <= 0.05) { statusHtml = '<span class="status-badge status-ok">Conciliado</span>'; diffClass = 'diff-ok'; } 
             else { statusHtml = '<span class="status-badge status-erro">Divergente</span>'; diffClass = 'diff-erro'; if (isFormula) divergenciasCount++; }
 
-            const isTotalizador = data.originalLabel.includes('(=)') || data.originalLabel.includes('LUCRO') || data.originalLabel.includes('RESULTADO') || data.originalLabel.includes('LIQUIDA');
+            const originalLabel = rule.descricao;
+            const isTotalizador = originalLabel.includes('(=)') || originalLabel.includes('LUCRO') || originalLabel.includes('RESULTADO') || originalLabel.includes('LIQUIDA');
+            const isAnalitica = /^\d\.\d{2}\.\d{2}\.\d{2}/.test(originalLabel);
 
-            let rowStyleClass = isFormula ? 'row-is-formula' : (isTotalizador ? 'row-totalizador' : (data.isAnalitica ? 'conta-analitica' : 'conta-sintetica'));
+            let rowStyleClass = isFormula ? 'row-is-formula' : (isTotalizador ? 'row-totalizador' : (isAnalitica ? 'conta-analitica' : 'conta-sintetica'));
             let visualCalcValue = (pdfValue < 0 && calcValue > 0) ? -calcValue : calcValue;
             const colorClassA = pdfValue < 0 ? 'val-negative' : 'val-positive';
             const colorClassB = visualCalcValue < 0 ? 'val-negative' : 'val-positive';
 
-            let hasDetails = isFormula || data.filiaisDetail.length > 0;
+            let hasDetails = isFormula; 
             const btnClass = isFormula ? 'btn-expand is-formula-btn' : 'btn-expand';
             
             let btnExpandHtml = '';
-            if (isFormula || hasDetails) {
+            if (hasDetails) {
                 btnExpandHtml = `<button class="${btnClass}" onclick="toggleDetails(this, '${safeClass}')" title="Ver Composição">+</button>`;
             } else {
                 btnExpandHtml = `<span style="display:inline-block; width: 30px; flex-shrink: 0;"></span>`;
@@ -836,7 +818,7 @@
 
             tbody.innerHTML += `
                 <tr ${trId} class="${rowStyleClass}">
-                    <td><div style="display:flex; align-items:center;">${btnExpandHtml} ${codigoTag ? `<span class="codigo-erp">${codigoTag}</span>` : ``} <span class="account-label">${data.originalLabel}</span></div></td>
+                    <td><div style="display:flex; align-items:center;">${btnExpandHtml} <span class="codigo-erp">${codigoTag}</span> <span class="account-label">${originalLabel}</span></div></td>
                     <td class="${colorClassA}">${formatBRL(pdfValue)}</td>
                     <td class="${colorClassB}">${formatBRL(visualCalcValue)}</td>
                     <td class="${diffClass}">${formatBRL(diferenca)}</td>
@@ -844,18 +826,30 @@
                 </tr>
             `;
 
-            if (hasDetails && isFormula) {
-                // Formatação Dinâmica (Recálculo)
+            if (hasDetails) {
                 let finalResultColor = calcValue < 0 ? 'var(--danger)' : 'var(--primary)';
                 let finalResultSign = calcValue < 0 ? '- ' : '';
                 let cleanBrlResult = formatBRL(Math.abs(calcValue)).replace(/[R\$\(\)\s]/g, '').trim();
 
-                // BUG CORRIGIDO: Vincula a saída final diretamente ao valor puro lido da linha do PDF (pdfValue)
-                let finalPdfColor = pdfValue < 0 ? 'var(--danger)' : 'var(--primary)';
-                let finalPdfSign = pdfValue < 0 ? '- ' : '';
-                let cleanBrlPdf = formatBRL(Math.abs(pdfValue)).replace(/[R\$\(\)\s]/g, '').trim();
+                let literalPdfCalcResult = 0;
+                let cleanExp = formulaStr.replace(/\([^)]+\)/g, '').trim().replace(/\s+/g, ''); 
+                let tokenRegex = /([\+\-]?)(\d+)/g;
+                let match;
+                while ((match = tokenRegex.exec(cleanExp)) !== null) {
+                    let operator = match[1] || '+'; 
+                    let id = parseInt(match[2], 10);
+                    let item = rules.find(r => r.codigo === id);
+                    if (item) {
+                        let pdfVal = item.pdfValue || 0;
+                        let effectPdf = (operator === '-') ? -Math.abs(pdfVal) : pdfVal;
+                        literalPdfCalcResult += effectPdf;
+                    }
+                }
+                
+                let finalPdfColor = literalPdfCalcResult < 0 ? 'var(--danger)' : 'var(--primary)';
+                let finalPdfSign = literalPdfCalcResult < 0 ? '- ' : '';
+                let cleanBrlPdf = formatBRL(Math.abs(literalPdfCalcResult)).replace(/[R\$\(\)\s]/g, '').trim();
 
-                // LAYOUT REMODELADO EM FLEX COLUMNS (Ocupa 100% à direita sem risco de quebrar fórmulas grandes)
                 tbody.innerHTML += `
                     <tr class="detail-row is-formula-detail ${safeClass} last-child" style="display: none;">
                         <td>↳ Memória de Cálculo ERP:</td>
@@ -869,12 +863,12 @@
                                 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem; margin-top: 8px; width: 100%;">
                                     
                                     <div style="display: flex; flex-direction: column; width: 100%;">
-                                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">Recálculo da Fórmula:</div>
-                                        <div style="line-height: 1.6; width: 100%;">${memoryRecalcHtml} <b style="color: ${finalResultColor}; margin-left: 8px;"> = ${finalResultSign}R$ ${cleanBrlResult}</b></div>
+                                        <div style="font-weight: 900; color: var(--text-main); margin-bottom: 2px;">Recálculo da Fórmula:</div>
+                                        <div style="line-height: 1.6; font-weight: 900; width: 100%;">${memoryRecalcHtml} <b style="color: ${finalResultColor}; margin-left: 8px;"> = ${finalResultSign}R$ ${cleanBrlResult}</b></div>
                                     </div>
                                     
                                     <div style="display: flex; flex-direction: column; width: 100%;">
-                                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">Valores do PDF (Impresso):</div>
+                                        <div style="font-weight: 900; color: var(--text-main); margin-bottom: 2px;">Valores do PDF (Impresso):</div>
                                         <div style="line-height: 1.6; font-weight: 900; color: var(--text-main); width: 100%;">${memoryPdfHtml} <b style="color: ${finalPdfColor}; margin-left: 8px;"> = ${finalPdfSign}R$ ${cleanBrlPdf}</b></div>
                                     </div>
 
