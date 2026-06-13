@@ -184,7 +184,7 @@
 
         .math-token-group {
             cursor: pointer;
-            margin-bottom: 8px; /* Reduzido levemente para o grid de baixo abraçar melhor */
+            margin-bottom: 8px; 
             transition: all 0.2s;
             display: block;
         }
@@ -739,7 +739,6 @@
         renderTabFormulasMath(rules, seqPdf);
     }
 
-    // INTERATIVIDADE MULTI-ESTRUTURA: COLECIONA RECALCULO E PDF ORIGINAL EM DUAS TRILHAS SEPARADAS
     function evaluateFormulaMath(formulaStr, itemsMap, formulaId) {
         if (!formulaStr) return { val: 0, memRecalc: '', memPdf: '', ids: [] };
         let cleanExp = formulaStr.replace(/\([^)]+\)/g, '').trim().replace(/\s+/g, ''); 
@@ -753,14 +752,14 @@
             if (itemsMap.has(id)) {
                 involvedIds.push(id);
                 
-                // Mapeamento de Valores Dinâmicos (Trilha A - Recálculo)
+                // Trilha A - Recálculo Dinâmico
                 let rawVal = itemsMap.get(id).calculatedValue || 0;
                 result += rawVal;
                 let operandValue = (operator === '-') ? -rawVal : rawVal;
                 let colorRecalc = rawVal < 0 ? 'var(--danger)' : 'var(--success)';
                 let formattedOperand = formatBRL(operandValue); 
                 
-                // Mapeamento de Valores Impressos (Trilha B - PDF Base)
+                // Trilha B - PDF Impresso (Espelhado sem recálculo)
                 let rawPdfVal = itemsMap.get(id).pdfValue || 0;
                 let operandPdfValue = (operator === '-') ? -rawPdfVal : rawPdfVal;
                 let colorPdf = rawPdfVal < 0 ? 'var(--danger)' : 'var(--success)';
@@ -846,16 +845,17 @@
             `;
 
             if (hasDetails && isFormula) {
-                // Prepara formatações da Trilha A (Recálculo)
+                // Formatação Dinâmica (Recálculo)
                 let finalResultColor = calcValue < 0 ? 'var(--danger)' : 'var(--primary)';
                 let finalResultSign = calcValue < 0 ? '- ' : '';
                 let cleanBrlResult = formatBRL(Math.abs(calcValue)).replace(/[R\$\(\)\s]/g, '').trim();
 
-                // Prepara formatações da Trilha B (PDF original)
+                // BUG CORRIGIDO: Vincula a saída final diretamente ao valor puro lido da linha do PDF (pdfValue)
                 let finalPdfColor = pdfValue < 0 ? 'var(--danger)' : 'var(--primary)';
                 let finalPdfSign = pdfValue < 0 ? '- ' : '';
                 let cleanBrlPdf = formatBRL(Math.abs(pdfValue)).replace(/[R\$\(\)\s]/g, '').trim();
 
+                // LAYOUT REMODELADO EM FLEX COLUMNS (Ocupa 100% à direita sem risco de quebrar fórmulas grandes)
                 tbody.innerHTML += `
                     <tr class="detail-row is-formula-detail ${safeClass} last-child" style="display: none;">
                         <td>↳ Memória de Cálculo ERP:</td>
@@ -866,12 +866,18 @@
                                     <b>Regra Original:</b> ${formulaStr}
                                 </div>
                                 
-                                <div style="display: grid; grid-template-columns: 210px 1fr; gap: 6px; font-size: 0.85rem; margin-top: 8px;">
-                                    <div style="font-weight: 800; color: var(--text-main);">Recálculo da Fórmula:</div>
-                                    <div>${memoryRecalcHtml} <b style="color: ${finalResultColor}; margin-left: 8px;"> = ${finalResultSign}R$ ${cleanBrlResult}</b></div>
+                                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem; margin-top: 8px; width: 100%;">
                                     
-                                    <div style="font-weight: 800; color: var(--text-main);">Valores do PDF (Impresso):</div>
-                                    <div style="font-weight: 900; color: var(--text-main);">${memoryPdfHtml} <b style="color: ${finalPdfColor}; margin-left: 8px;"> = ${finalPdfSign}R$ ${cleanBrlPdf}</b></div>
+                                    <div style="display: flex; flex-direction: column; width: 100%;">
+                                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">Recálculo da Fórmula:</div>
+                                        <div style="line-height: 1.6; width: 100%;">${memoryRecalcHtml} <b style="color: ${finalResultColor}; margin-left: 8px;"> = ${finalResultSign}R$ ${cleanBrlResult}</b></div>
+                                    </div>
+                                    
+                                    <div style="display: flex; flex-direction: column; width: 100%;">
+                                        <div style="font-weight: 800; color: var(--text-main); margin-bottom: 2px;">Valores do PDF (Impresso):</div>
+                                        <div style="line-height: 1.6; font-weight: 900; color: var(--text-main); width: 100%;">${memoryPdfHtml} <b style="color: ${finalPdfColor}; margin-left: 8px;"> = ${finalPdfSign}R$ ${cleanBrlPdf}</b></div>
+                                    </div>
+
                                 </div>
                             </div>
                         </td>
