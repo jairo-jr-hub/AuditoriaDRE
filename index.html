@@ -157,7 +157,7 @@
             background: #fdfdfd; 
             border: 1px dashed var(--border-highlight); 
             border-radius: 6px; 
-            padding: 10px; 
+            padding: 10px 14px; 
             margin-top: 6px; 
             font-family: 'Fira Code', monospace; 
             transition: all 0.2s; 
@@ -184,7 +184,7 @@
 
         .math-token-group {
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 8px; /* Reduzido levemente para o grid de baixo abraçar melhor */
             transition: all 0.2s;
             display: block;
         }
@@ -204,18 +204,18 @@
             box-shadow: inset 4px 0 0 0 #fbc02d !important;
         }
 
-        /* NOVO: DESTAQUE AZUL/ROXO NA TABELA (RESULTADO DA FÓRMULA) */
+        /* DESTAQUE AZUL/ROXO NA TABELA (RESULTADO DA FÓRMULA) */
         tbody tr.highlight-result-target td,
         tbody tr.highlight-result-target.row-is-formula td,
         tbody tr.highlight-result-target.parent-expanded td,
         tbody tr.highlight-result-target.parent-expanded.row-is-formula td {
-            background-color: #e0e7ff !important; /* Azul/Indigo claro */
+            background-color: #e0e7ff !important;
         }
         tbody tr.highlight-result-target td:first-child,
         tbody tr.highlight-result-target.row-is-formula td:first-child,
         tbody tr.highlight-result-target.parent-expanded td:first-child,
         tbody tr.highlight-result-target.parent-expanded.row-is-formula td:first-child {
-            box-shadow: inset 4px 0 0 0 #6366f1 !important; /* Borda Indigo forte */
+            box-shadow: inset 4px 0 0 0 #6366f1 !important;
         }
 
         /* CLASSES PARA PINTAR O TEXTO E O QUADRO CLICADO DE AMARELO */
@@ -372,7 +372,7 @@
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 10px;">
                     <h3 style="margin:0; font-size: 1.05rem; color: var(--success);">🧮 Auditoria de Fórmulas ERP</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">🟢 Linhas em verde indicam valores calculados automaticamente. Clique em [+] para ver os detalhes do cálculo.</span>
+                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">🟢 Fórmula ativa: Clique em [+] para detalhar o cálculo</span>
                         <button class="btn btn-imprimir" onclick="prepararImpressao()">🖨️ Imprimir</button>
                     </div>
                 </div>
@@ -513,7 +513,7 @@
         }, 300);
     };
 
-    // --- FUNÇÕES DE HIGHLIGHT (ATUALIZADO COM COR DE RESULTADO) ---
+    // --- FUNÇÕES DE HIGHLIGHT CORRIGIDAS COM SUPORTE AO AZUL DO RESULTADO ---
     window.highlightRow = function(id, formulaId, isClick = false, el = null) {
         if (lockedHighlight && !isClick) return; 
         
@@ -529,9 +529,8 @@
 
         clearHighlights(true);
         let row = document.getElementById('erp-row-' + id);
-        if (row) row.classList.add('highlight-row-target'); // Amarelo (Origem)
+        if (row) row.classList.add('highlight-row-target');
         
-        // Pinta a linha do resultado de azul/roxo claro
         if (formulaId) {
             let resultRow = document.getElementById('erp-row-' + formulaId);
             if (resultRow) resultRow.classList.add('highlight-result-target');
@@ -556,15 +555,14 @@
         clearHighlights(true);
         ids.forEach(id => {
             let row = document.getElementById('erp-row-' + id);
-            if (row) row.classList.add('highlight-row-target'); // Amarelo (Origens)
+            if (row) row.classList.add('highlight-row-target');
         });
         
-        // Pinta a linha do resultado de azul/roxo claro
         if (formulaId) {
             let resultRow = document.getElementById('erp-row-' + formulaId);
             if (resultRow) resultRow.classList.add('highlight-result-target');
         }
-
+        
         if (isClick && el) { el.classList.add('math-token-locked'); }
     };
 
@@ -726,10 +724,10 @@
 
         rules.forEach(item => {
             if (item.tipo.includes('FÓRMULA') || item.tipo.includes('FORMULA')) {
-                // Passamos item.codigo para a função de avaliação saber quem é o resultado final
                 let calcData = evaluateFormulaMath(item.formula, itemsMap, item.codigo);
                 item.calculatedValue = calcData.val;
-                item.memoryHtml = calcData.mem;
+                item.memoryRecalcHtml = calcData.memRecalc;
+                item.memoryPdfHtml = calcData.memPdf;
                 item.involvedIds = calcData.ids;
             } else {
                 item.calculatedValue = item.pdfValue; 
@@ -741,11 +739,12 @@
         renderTabFormulasMath(rules, seqPdf);
     }
 
+    // INTERATIVIDADE MULTI-ESTRUTURA: COLECIONA RECALCULO E PDF ORIGINAL EM DUAS TRILHAS SEPARADAS
     function evaluateFormulaMath(formulaStr, itemsMap, formulaId) {
-        if (!formulaStr) return { val: 0, mem: '', ids: [] };
+        if (!formulaStr) return { val: 0, memRecalc: '', memPdf: '', ids: [] };
         let cleanExp = formulaStr.replace(/\([^)]+\)/g, '').trim().replace(/\s+/g, ''); 
         let tokenRegex = /([\+\-]?)(\d+)/g;
-        let match; let result = 0; let memHtml = ''; let involvedIds = [];
+        let match; let result = 0; let memRecalcHtml = ''; let memPdfHtml = ''; let involvedIds = [];
 
         while ((match = tokenRegex.exec(cleanExp)) !== null) {
             let operator = match[1] || '+'; 
@@ -753,26 +752,38 @@
             
             if (itemsMap.has(id)) {
                 involvedIds.push(id);
+                
+                // Mapeamento de Valores Dinâmicos (Trilha A - Recálculo)
                 let rawVal = itemsMap.get(id).calculatedValue || 0;
                 result += rawVal;
-                
                 let operandValue = (operator === '-') ? -rawVal : rawVal;
-                let color = rawVal < 0 ? 'var(--danger)' : 'var(--success)';
+                let colorRecalc = rawVal < 0 ? 'var(--danger)' : 'var(--success)';
                 let formattedOperand = formatBRL(operandValue); 
                 
-                if (memHtml !== '') {
-                    memHtml += ` <span style="font-weight: 700; color: var(--text-main);">${operator}</span> `;
+                // Mapeamento de Valores Impressos (Trilha B - PDF Base)
+                let rawPdfVal = itemsMap.get(id).pdfValue || 0;
+                let operandPdfValue = (operator === '-') ? -rawPdfVal : rawPdfVal;
+                let colorPdf = rawPdfVal < 0 ? 'var(--danger)' : 'var(--success)';
+                let formattedPdfOperand = formatBRL(operandPdfValue);
+
+                if (memRecalcHtml !== '') {
+                    memRecalcHtml += `<span style="font-weight: 800; margin: 0 6px; color: var(--text-main);">${operator}</span>`;
+                    memPdfHtml += `<span style="font-weight: 800; margin: 0 6px; color: var(--text-main);">${operator}</span>`;
                 } else if (operator === '-') {
-                    memHtml += `<span style="font-weight: 700; color: var(--text-main);">-</span> `;
+                    memRecalcHtml += `<span style="font-weight: 800; margin: 0 6px 0 0; color: var(--text-main);">-</span>`;
+                    memPdfHtml += `<span style="font-weight: 800; margin: 0 6px 0 0; color: var(--text-main);">-</span>`;
                 }
                 
-                // Passamos o formulaId para a highlightRow saber quem é o resultado a ser pintado de azul/roxo
-                memHtml += `<span class="math-token" onmouseover="highlightRow(${id}, ${formulaId})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, ${formulaId}, true, this)">
-                               <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${color}; font-weight: 700;">${formattedOperand}</span>
+                memRecalcHtml += `<span class="math-token" onmouseover="highlightRow(${id}, ${formulaId})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, ${formulaId}, true, this)">
+                               <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${colorRecalc}; font-weight: 700;">${formattedOperand}</span>
+                            </span>`;
+
+                memPdfHtml += `<span class="math-token" onmouseover="highlightRow(${id}, ${formulaId})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, ${formulaId}, true, this)">
+                               <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${colorPdf}; font-weight: 700;">${formattedPdfOperand}</span>
                             </span>`;
             }
         }
-        return { val: result, mem: memHtml.trim(), ids: involvedIds };
+        return { val: result, memRecalc: memRecalcHtml.trim(), memPdf: memPdfHtml.trim(), ids: involvedIds };
     }
 
     function renderTabFormulasMath(rules, seqPdf) {
@@ -786,7 +797,7 @@
             
             let pdfValue = data.consolidadoValue;
             let calcValue = pdfValue; 
-            let isFormula = false; let formulaStr = ''; let memoryHtml = ''; let codigoTag = ''; let involvedIdsStr = '[]';
+            let isFormula = false; let formulaStr = ''; let memoryRecalcHtml = ''; let memoryPdfHtml = ''; let codigoTag = ''; let involvedIdsStr = '[]';
 
             let trId = rule ? `id="erp-row-${rule.codigo}"` : '';
 
@@ -794,7 +805,8 @@
                 calcValue = rule.calculatedValue;
                 isFormula = rule.tipo.includes('FÓRMULA') || rule.tipo.includes('FORMULA');
                 formulaStr = rule.formula; 
-                memoryHtml = rule.memoryHtml || ''; 
+                memoryRecalcHtml = rule.memoryRecalcHtml || ''; 
+                memoryPdfHtml = rule.memoryPdfHtml || '';
                 codigoTag = `[${rule.codigo}]`; 
                 involvedIdsStr = JSON.stringify(rule.involvedIds || []);
             }
@@ -834,11 +846,16 @@
             `;
 
             if (hasDetails && isFormula) {
+                // Prepara formatações da Trilha A (Recálculo)
                 let finalResultColor = calcValue < 0 ? 'var(--danger)' : 'var(--primary)';
                 let finalResultSign = calcValue < 0 ? '- ' : '';
                 let cleanBrlResult = formatBRL(Math.abs(calcValue)).replace(/[R\$\(\)\s]/g, '').trim();
 
-                // Passa rule.codigo para destacar a linha do resultado de azul
+                // Prepara formatações da Trilha B (PDF original)
+                let finalPdfColor = pdfValue < 0 ? 'var(--danger)' : 'var(--primary)';
+                let finalPdfSign = pdfValue < 0 ? '- ' : '';
+                let cleanBrlPdf = formatBRL(Math.abs(pdfValue)).replace(/[R\$\(\)\s]/g, '').trim();
+
                 tbody.innerHTML += `
                     <tr class="detail-row is-formula-detail ${safeClass} last-child" style="display: none;">
                         <td>↳ Memória de Cálculo ERP:</td>
@@ -848,8 +865,13 @@
                                      onmouseover='highlightMultipleRows(${involvedIdsStr}, ${rule.codigo})' onmouseout='clearHighlights()' onclick='highlightMultipleRows(${involvedIdsStr}, ${rule.codigo}, true, this.closest(".memoria-box"))'>
                                     <b>Regra Original:</b> ${formulaStr}
                                 </div>
-                                <div style="color: var(--text-main); font-size: 0.85rem;">
-                                    <b>Matemática:</b> ${memoryHtml} <b style="color: ${finalResultColor};"> = ${finalResultSign}R$ ${cleanBrlResult}</b>
+                                
+                                <div style="display: grid; grid-template-columns: 210px 1fr; gap: 6px; font-size: 0.85rem; margin-top: 8px;">
+                                    <div style="font-weight: 800; color: var(--text-main);">Recálculo da Fórmula:</div>
+                                    <div>${memoryRecalcHtml} <b style="color: ${finalResultColor}; margin-left: 8px;"> = ${finalResultSign}R$ ${cleanBrlResult}</b></div>
+                                    
+                                    <div style="font-weight: 800; color: var(--text-main);">Valores do PDF (Impresso):</div>
+                                    <div style="font-weight: 900; color: var(--text-main);">${memoryPdfHtml} <b style="color: ${finalPdfColor}; margin-left: 8px;"> = ${finalPdfSign}R$ ${cleanBrlPdf}</b></div>
                                 </div>
                             </div>
                         </td>
@@ -1001,10 +1023,10 @@
     function extrairNomeFilial(linhas, fallback) {
         let textoFilial = "", complemento = "";
         for (let i = 0; i < Math.min(20, linhas.length); i++) {
-            const linha = linhas[i];
-            if (!textoFilial && linha.match(/Filial:\s*[\d,]+/i)) textoFilial = linha.trim();
-            if (textoFilial && !linha.includes('Filial:') && !linha.includes('Período') && !linha.includes('Tela:') && !linha.includes('CULTURAMA') && !linha.includes('Demonstrativo') && !linha.includes('Página') && !linha.toLowerCase().includes('valores expressos') && linha.length > 3) {
-                if (!linha.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}/)) { complemento = linha.trim(); break; }
+            const inline = linhas[i];
+            if (!textoFilial && inline.match(/Filial:\s*[\d,]+/i)) textoFilial = inline.trim();
+            if (textoFilial && !inline.includes('Filial:') && !inline.includes('Período') && !inline.includes('Tela:') && !inline.includes('CULTURAMA') && !inline.includes('Demonstrativo') && !inline.includes('Página') && !inline.toLowerCase().includes('valores expressos') && inline.length > 3) {
+                if (!inline.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}/)) { complemento = inline.trim(); break; }
             }
         }
         let nomeFinal = textoFilial || fallback;
