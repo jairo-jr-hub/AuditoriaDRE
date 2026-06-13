@@ -151,13 +151,28 @@
         .badge-tipo { padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; background: #e0e9f0; color: #1f5e8c; display: inline-block; white-space: nowrap; margin-left: 8px; }
         .badge-tipo.formula { background: #e6f4f1; color: #2a7f6e; border: 1px solid #a3d9cf; }
         .codigo-erp { color: #8ba3bb; font-family: 'Fira Code', monospace; font-size: 0.75rem; margin-right: 6px; }
-        .memoria-box { background: #fdfdfd; border: 1px dashed var(--border-highlight); border-radius: 6px; padding: 10px; margin-top: 6px; font-family: 'Fira Code', monospace; }
+        
+        /* O quadro da memória agora reage ao hover */
+        .memoria-box { 
+            background: #fdfdfd; 
+            border: 1px dashed var(--border-highlight); 
+            border-radius: 6px; 
+            padding: 10px; 
+            margin-top: 6px; 
+            font-family: 'Fira Code', monospace; 
+            transition: all 0.2s; 
+        }
+        .memoria-box:hover {
+            background-color: #f4fafd;
+            border-color: #a3d9cf;
+        }
 
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* --- HIGHLIGHT DE INTERATIVIDADE --- */
-        .math-token, .math-token-group {
+        /* Token individual da conta (inline) */
+        .math-token {
             cursor: pointer;
             border-radius: 4px;
             padding: 2px 6px;
@@ -165,14 +180,19 @@
             transition: background-color 0.2s, transform 0.1s;
             display: inline-block;
         }
-        .math-token:hover, .math-token-group:hover {
-            background-color: #e6f4f1;
+        .math-token:hover { background-color: #e6f4f1; }
+        .math-token:active { transform: scale(0.98); }
+
+        /* Token do Grupo da Regra (bloco alinhado à esquerda) */
+        .math-token-group {
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            display: block;
         }
-        .math-token:active, .math-token-group:active {
-            transform: scale(0.98);
-        }
+        .math-token-group:active { transform: scale(0.99); }
         
-        /* CORREÇÃO DO DESTAQUE AMARELO: Forçando a prioridade máxima sobre as outras classes */
+        /* CORREÇÃO DO DESTAQUE AMARELO DA LINHA DA TABELA CLICADA */
         tbody tr.highlight-row-target td,
         tbody tr.highlight-row-target.row-is-formula td,
         tbody tr.highlight-row-target.parent-expanded td,
@@ -184,6 +204,20 @@
         tbody tr.highlight-row-target.parent-expanded td:first-child,
         tbody tr.highlight-row-target.parent-expanded.row-is-formula td:first-child {
             box-shadow: inset 4px 0 0 0 #fbc02d !important;
+        }
+
+        /* --- CLASSES PARA PINTAR O TEXTO E O QUADRO CLICADO DE AMARELO --- */
+        /* Pinta o quadro todo (memoria-box) de amarelo se ele receber a classe */
+        .memoria-box.math-token-locked {
+            background-color: #fff8cd !important;
+            border-color: #fbc02d !important;
+            border-style: solid !important;
+            border-width: 2px; 
+        }
+        /* Pinta o botão/token individual de amarelo se ele receber a classe */
+        .math-token.math-token-locked {
+            background-color: #fff8cd !important;
+            box-shadow: inset 0 0 0 1px #fbc02d !important;
         }
 
         /* --- MODO IMPRESSÃO --- */
@@ -315,14 +349,6 @@
         <div id="tab-formulas" class="tab-content">
             <div class="kpi-grid">
                 <div class="kpi">
-                    <div class="kpi-label">Resultado PDF Base</div>
-                    <div class="kpi-value" id="kpiFormulaPdf">R$ 0,00</div>
-                </div>
-                <div class="kpi">
-                    <div class="kpi-label">Resultado Matemático</div>
-                    <div class="kpi-value" id="kpiFormulaCalc">R$ 0,00</div>
-                </div>
-                <div class="kpi">
                     <div class="kpi-label">Regras Lidas (CSV)</div>
                     <div class="kpi-value" id="kpiFormulaTotal">0</div>
                 </div>
@@ -359,14 +385,6 @@
 
         <div id="tab-conciliacao" class="tab-content">
             <div class="kpi-grid">
-                <div class="kpi">
-                    <div class="kpi-label">Resultado Consolidado</div>
-                    <div class="kpi-value" id="kpiResultadoMaster">R$ 0,00</div>
-                </div>
-                <div class="kpi">
-                    <div class="kpi-label">Soma Filiais DRE</div>
-                    <div class="kpi-value" id="kpiResultadoFiliais">R$ 0,00</div>
-                </div>
                 <div class="kpi">
                     <div class="kpi-label">Rubricas Analisadas</div>
                     <div class="kpi-value" id="kpiTotalContas">0</div>
@@ -412,14 +430,14 @@
 
 <script>
     // Memórias Isoladas para não conflitar as abas
-    let currentUploadTab = 'upload-math'; // NOVO: Controla isolamento de abas
+    let currentUploadTab = 'upload-math';
     let pdfSequenceMath = [];
     let dynamicAccountMapConcil = new Map();
-    let lockedHighlight = false; // Controle de travamento do highlight
+    let lockedHighlight = false;
 
     // Event listener global para remover o destaque travado se clicar fora
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.math-token') && !e.target.closest('.math-token-group')) {
+        if (!e.target.closest('.math-token') && !e.target.closest('.math-token-group') && !e.target.closest('.memoria-box')) {
             lockedHighlight = false;
             clearHighlights(true);
         }
@@ -453,7 +471,7 @@
         document.querySelectorAll('.upload-tab-content').forEach(tab => tab.classList.remove('active'));
         btnElement.classList.add('active');
         document.getElementById(tabId).classList.add('active');
-        currentUploadTab = tabId; // NOVO: Atualiza aba de upload ativa
+        currentUploadTab = tabId;
     }
 
     function switchResultTab(tabId, btnElement) {
@@ -486,24 +504,26 @@
     };
 
     // --- FUNÇÕES DE HIGHLIGHT ---
-    window.highlightRow = function(id, isClick = false) {
-        if (lockedHighlight && !isClick) return; // Se está travado e é apenas hover, ignora
+    window.highlightRow = function(id, isClick = false, el = null) {
+        if (lockedHighlight && !isClick) return; 
         
         if (isClick) {
-            if (lockedHighlight === id) { // Clicou no mesmo item, destrava
+            if (lockedHighlight === id) { 
                 lockedHighlight = false;
                 clearHighlights(true);
                 return;
             }
-            lockedHighlight = id; // Trava no novo clique
+            lockedHighlight = id; 
         }
 
         clearHighlights(true);
         let row = document.getElementById('erp-row-' + id);
         if (row) row.classList.add('highlight-row-target');
+        
+        if (isClick && el) { el.classList.add('math-token-locked'); }
     };
 
-    window.highlightMultipleRows = function(ids, isClick = false) {
+    window.highlightMultipleRows = function(ids, isClick = false, el = null) {
         let lockKey = ids.join(',');
         if (lockedHighlight && !isClick) return;
 
@@ -521,11 +541,14 @@
             let row = document.getElementById('erp-row-' + id);
             if (row) row.classList.add('highlight-row-target');
         });
+        
+        if (isClick && el) { el.classList.add('math-token-locked'); }
     };
 
     window.clearHighlights = function(force = false) {
-        if (lockedHighlight && !force) return; // Não limpa se estiver travado (a menos que seja forçado)
+        if (lockedHighlight && !force) return; 
         document.querySelectorAll('.highlight-row-target').forEach(el => el.classList.remove('highlight-row-target'));
+        document.querySelectorAll('.math-token-locked').forEach(el => el.classList.remove('math-token-locked'));
     };
 
     // =========================================================================
@@ -537,7 +560,6 @@
         let pdfMatriz = document.getElementById('pdfMatriz').files[0];
         let pdfFiliais = document.getElementById('pdfFiliais').files;
 
-        // NOVO: Execução estritamente condicionada à aba visível/ativa no momento
         let runMath = (currentUploadTab === 'upload-math') && pdfMath && csvRegras;
         let runConcil = (currentUploadTab === 'upload-concil') && pdfMatriz && pdfFiliais.length > 0;
 
@@ -548,12 +570,10 @@
 
         toggleLoading(true);
         
-        // Esconde os botões de resultado antes do cálculo para reiniciar o estado visual
         if (currentUploadTab === 'upload-math') document.getElementById('btnTabFormulas').style.display = 'none';
         if (currentUploadTab === 'upload-concil') document.getElementById('btnTabConciliacao').style.display = 'none';
 
         try {
-            // Processa Aba Matemática
             if (runMath) {
                 let pagesMath = await extractPagesFromPDF(pdfMath);
                 let flatMath = pagesMath.flat();
@@ -570,7 +590,6 @@
                 });
             }
 
-            // Processa Aba Conciliação Filiais
             if (runConcil) {
                 dynamicAccountMapConcil.clear();
                 let pagesMatriz = await extractPagesFromPDF(pdfMatriz);
@@ -588,7 +607,6 @@
                 document.getElementById('btnTabConciliacao').style.display = 'inline-block';
             }
 
-            // Seleção Dinâmica da Aba de Destino do Resultado
             if (runMath) {
                 switchResultTab('tab-formulas', document.getElementById('btnTabFormulas'));
             } else if (runConcil) {
@@ -687,7 +705,7 @@
                 let calcData = evaluateFormulaMath(item.formula, itemsMap);
                 item.calculatedValue = calcData.val;
                 item.memoryHtml = calcData.mem;
-                item.involvedIds = calcData.ids; // Salvando IDs envolvidos para o highlight global
+                item.involvedIds = calcData.ids;
             } else {
                 item.calculatedValue = item.pdfValue; 
                 item.involvedIds = [];
@@ -724,8 +742,7 @@
                     memHtml += `<span style="font-weight: 700; color: var(--text-main);">-</span> `;
                 }
                 
-                // Elemento matemático clicável/hoverável
-                memHtml += `<span class="math-token" onmouseover="highlightRow(${id})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, true)">
+                memHtml += `<span class="math-token" onmouseover="highlightRow(${id})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, true, this)">
                                <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${color}; font-weight: 700;">R$ ${cleanBrl}</span>
                             </span>`;
             }
@@ -736,7 +753,7 @@
     function renderTabFormulasMath(rules, seqPdf) {
         const tbody = document.getElementById('formulasTableBody');
         tbody.innerHTML = '';
-        let divergenciasCount = 0; let pdfMaster = 0; let calcMaster = 0;
+        let divergenciasCount = 0; 
 
         seqPdf.forEach((data, index) => {
             const safeClass = 'detalhe-formula-conta-' + index;
@@ -746,7 +763,6 @@
             let calcValue = pdfValue; 
             let isFormula = false; let formulaStr = ''; let memoryHtml = ''; let codigoTag = ''; let involvedIdsStr = '[]';
 
-            // Definir o ID na tag <tr> baseado no código para ancorar o destaque
             let trId = rule ? `id="erp-row-${rule.codigo}"` : '';
 
             if (rule) {
@@ -766,9 +782,6 @@
             else { statusHtml = '<span class="status-badge status-erro">Divergente</span>'; diffClass = 'diff-erro'; if (isFormula) divergenciasCount++; }
 
             const isTotalizador = data.originalLabel.includes('(=)') || data.originalLabel.includes('LUCRO') || data.originalLabel.includes('RESULTADO') || data.originalLabel.includes('LIQUIDA');
-            if (data.originalLabel.includes('RESULTADO') && (data.originalLabel.includes('LIQUIDO') || data.originalLabel.includes('LQUIDO'))) {
-                pdfMaster = pdfValue; calcMaster = calcValue;
-            }
 
             let rowStyleClass = isFormula ? 'row-is-formula' : (isTotalizador ? 'row-totalizador' : (data.isAnalitica ? 'conta-analitica' : 'conta-sintetica'));
             let visualCalcValue = (pdfValue < 0 && calcValue > 0) ? -calcValue : calcValue;
@@ -805,8 +818,8 @@
                         <td>↳ Memória de Cálculo ERP:</td>
                         <td colspan="4" style="text-align: left;">
                             <div class="memoria-box">
-                                <div class="math-token-group" style="font-size: 0.75rem; color: #1e6153; margin-bottom: 8px;"
-                                     onmouseover='highlightMultipleRows(${involvedIdsStr})' onmouseout='clearHighlights()' onclick='highlightMultipleRows(${involvedIdsStr}, true)'>
+                                <div class="math-token-group" style="font-size: 0.95rem; color: #1e6153;"
+                                     onmouseover='highlightMultipleRows(${involvedIdsStr})' onmouseout='clearHighlights()' onclick='highlightMultipleRows(${involvedIdsStr}, true, this.closest(".memoria-box"))'>
                                     <b>Regra Original:</b> ${formulaStr}
                                 </div>
                                 <div style="color: var(--text-main); font-size: 0.85rem;">
@@ -819,10 +832,6 @@
             }
         });
 
-        document.getElementById('kpiFormulaPdf').textContent = formatBRL(pdfMaster);
-        document.getElementById('kpiFormulaPdf').className = 'kpi-value ' + (pdfMaster < 0 ? 'danger' : 'success');
-        document.getElementById('kpiFormulaCalc').textContent = formatBRL(calcMaster);
-        document.getElementById('kpiFormulaCalc').className = 'kpi-value ' + (calcMaster < 0 ? 'danger' : 'success');
         document.getElementById('kpiFormulaTotal').textContent = rules.length;
         document.getElementById('kpiFormulaErros').textContent = divergenciasCount;
         document.getElementById('kpiFormulaErros').className = 'kpi-value ' + (divergenciasCount > 0 ? 'danger' : 'success');
@@ -871,7 +880,7 @@
     function renderAuditoriaConciliacao(mapObject) {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
-        let divergenciasCount = 0; let finalConsolidado = 0; let finalFiliais = 0; let index = 0;
+        let divergenciasCount = 0; let index = 0;
 
         for (let [key, data] of mapObject) {
             index++;
@@ -884,9 +893,6 @@
             else { statusHtml = '<span class="status-badge status-erro">Divergente</span>'; diffClass = 'diff-erro'; divergenciasCount++; }
 
             const isTotalizador = data.originalLabel.includes('(=)') || data.originalLabel.includes('LUCRO') || data.originalLabel.includes('RESULTADO') || data.originalLabel.includes('LIQUIDA');
-            if (data.originalLabel.includes('RESULTADO') && (data.originalLabel.includes('LIQUIDO') || data.originalLabel.includes('LQUIDO'))) {
-                finalConsolidado = data.consolidadoValue; finalFiliais = data.filiaisAcumulado;
-            }
 
             let rowStyleClass = isTotalizador ? 'row-totalizador' : (data.isAnalitica ? 'conta-analitica' : 'conta-sintetica');
             const colorClassA = data.consolidadoValue < 0 ? 'val-negative' : 'val-positive';
@@ -924,10 +930,6 @@
             }
         }
 
-        document.getElementById('kpiResultadoMaster').textContent = formatBRL(finalConsolidado);
-        document.getElementById('kpiResultadoMaster').className = 'kpi-value ' + (finalConsolidado < 0 ? 'danger' : 'success');
-        document.getElementById('kpiResultadoFiliais').textContent = formatBRL(finalFiliais);
-        document.getElementById('kpiResultadoFiliais').className = 'kpi-value ' + (finalFiliais < 0 ? 'danger' : 'success');
         document.getElementById('kpiTotalContas').textContent = mapObject.size;
         document.getElementById('kpiDivergencias').textContent = divergenciasCount;
         document.getElementById('kpiDivergencias').className = 'kpi-value ' + (divergenciasCount > 0 ? 'danger' : 'success');
@@ -1030,7 +1032,6 @@
         return seq;
     }
 
-    // Formata saídas numéricas monetárias no padrão contábil brasileiro (BRL)
     function formatBRL(valor) {
         if (valor === 0) return 'R$ 0,00';
         const formatted = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(valor));
