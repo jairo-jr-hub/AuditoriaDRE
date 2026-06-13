@@ -152,7 +152,7 @@
         .badge-tipo.formula { background: #e6f4f1; color: #2a7f6e; border: 1px solid #a3d9cf; }
         .codigo-erp { color: #8ba3bb; font-family: 'Fira Code', monospace; font-size: 0.75rem; margin-right: 6px; }
         
-        /* O quadro da memória agora reage ao hover */
+        /* O quadro da memória */
         .memoria-box { 
             background: #fdfdfd; 
             border: 1px dashed var(--border-highlight); 
@@ -171,7 +171,6 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* --- HIGHLIGHT DE INTERATIVIDADE --- */
-        /* Token individual da conta (inline) */
         .math-token {
             cursor: pointer;
             border-radius: 4px;
@@ -183,7 +182,6 @@
         .math-token:hover { background-color: #e6f4f1; }
         .math-token:active { transform: scale(0.98); }
 
-        /* Token do Grupo da Regra (bloco alinhado à esquerda) */
         .math-token-group {
             cursor: pointer;
             margin-bottom: 8px;
@@ -192,7 +190,7 @@
         }
         .math-token-group:active { transform: scale(0.99); }
         
-        /* CORREÇÃO DO DESTAQUE AMARELO DA LINHA DA TABELA CLICADA */
+        /* DESTAQUE AMARELO NA TABELA (ORIGENS DA FÓRMULA) */
         tbody tr.highlight-row-target td,
         tbody tr.highlight-row-target.row-is-formula td,
         tbody tr.highlight-row-target.parent-expanded td,
@@ -206,15 +204,27 @@
             box-shadow: inset 4px 0 0 0 #fbc02d !important;
         }
 
-        /* --- CLASSES PARA PINTAR O TEXTO E O QUADRO CLICADO DE AMARELO --- */
-        /* Pinta o quadro todo (memoria-box) de amarelo se ele receber a classe */
+        /* NOVO: DESTAQUE AZUL/ROXO NA TABELA (RESULTADO DA FÓRMULA) */
+        tbody tr.highlight-result-target td,
+        tbody tr.highlight-result-target.row-is-formula td,
+        tbody tr.highlight-result-target.parent-expanded td,
+        tbody tr.highlight-result-target.parent-expanded.row-is-formula td {
+            background-color: #e0e7ff !important; /* Azul/Indigo claro */
+        }
+        tbody tr.highlight-result-target td:first-child,
+        tbody tr.highlight-result-target.row-is-formula td:first-child,
+        tbody tr.highlight-result-target.parent-expanded td:first-child,
+        tbody tr.highlight-result-target.parent-expanded.row-is-formula td:first-child {
+            box-shadow: inset 4px 0 0 0 #6366f1 !important; /* Borda Indigo forte */
+        }
+
+        /* CLASSES PARA PINTAR O TEXTO E O QUADRO CLICADO DE AMARELO */
         .memoria-box.math-token-locked {
             background-color: #fff8cd !important;
             border-color: #fbc02d !important;
             border-style: solid !important;
             border-width: 2px; 
         }
-        /* Pinta o botão/token individual de amarelo se ele receber a classe */
         .math-token.math-token-locked {
             background-color: #fff8cd !important;
             box-shadow: inset 0 0 0 1px #fbc02d !important;
@@ -362,7 +372,7 @@
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 10px;">
                     <h3 style="margin:0; font-size: 1.05rem; color: var(--success);">🧮 Auditoria de Fórmulas ERP</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">Linhas em verde indicam valores calculados automaticamente. Clique em [+] para ver os detalhes do cálculo.</span>
+                        <span style="font-size: 0.7rem; color: var(--success); background: var(--success-bg); padding: 4px 10px; border-radius: 12px;">🟢 Linhas em verde indicam valores calculados automaticamente. Clique em [+] para ver os detalhes do cálculo.</span>
                         <button class="btn btn-imprimir" onclick="prepararImpressao()">🖨️ Imprimir</button>
                     </div>
                 </div>
@@ -503,28 +513,35 @@
         }, 300);
     };
 
-    // --- FUNÇÕES DE HIGHLIGHT ---
-    window.highlightRow = function(id, isClick = false, el = null) {
+    // --- FUNÇÕES DE HIGHLIGHT (ATUALIZADO COM COR DE RESULTADO) ---
+    window.highlightRow = function(id, formulaId, isClick = false, el = null) {
         if (lockedHighlight && !isClick) return; 
         
         if (isClick) {
-            if (lockedHighlight === id) { 
+            let lockKey = 'row_' + id + '_' + formulaId;
+            if (lockedHighlight === lockKey) { 
                 lockedHighlight = false;
                 clearHighlights(true);
                 return;
             }
-            lockedHighlight = id; 
+            lockedHighlight = lockKey; 
         }
 
         clearHighlights(true);
         let row = document.getElementById('erp-row-' + id);
-        if (row) row.classList.add('highlight-row-target');
+        if (row) row.classList.add('highlight-row-target'); // Amarelo (Origem)
+        
+        // Pinta a linha do resultado de azul/roxo claro
+        if (formulaId) {
+            let resultRow = document.getElementById('erp-row-' + formulaId);
+            if (resultRow) resultRow.classList.add('highlight-result-target');
+        }
         
         if (isClick && el) { el.classList.add('math-token-locked'); }
     };
 
-    window.highlightMultipleRows = function(ids, isClick = false, el = null) {
-        let lockKey = ids.join(',');
+    window.highlightMultipleRows = function(ids, formulaId, isClick = false, el = null) {
+        let lockKey = 'group_' + ids.join(',') + '_' + formulaId;
         if (lockedHighlight && !isClick) return;
 
         if (isClick) {
@@ -539,15 +556,22 @@
         clearHighlights(true);
         ids.forEach(id => {
             let row = document.getElementById('erp-row-' + id);
-            if (row) row.classList.add('highlight-row-target');
+            if (row) row.classList.add('highlight-row-target'); // Amarelo (Origens)
         });
         
+        // Pinta a linha do resultado de azul/roxo claro
+        if (formulaId) {
+            let resultRow = document.getElementById('erp-row-' + formulaId);
+            if (resultRow) resultRow.classList.add('highlight-result-target');
+        }
+
         if (isClick && el) { el.classList.add('math-token-locked'); }
     };
 
     window.clearHighlights = function(force = false) {
         if (lockedHighlight && !force) return; 
         document.querySelectorAll('.highlight-row-target').forEach(el => el.classList.remove('highlight-row-target'));
+        document.querySelectorAll('.highlight-result-target').forEach(el => el.classList.remove('highlight-result-target'));
         document.querySelectorAll('.math-token-locked').forEach(el => el.classList.remove('math-token-locked'));
     };
 
@@ -702,7 +726,8 @@
 
         rules.forEach(item => {
             if (item.tipo.includes('FÓRMULA') || item.tipo.includes('FORMULA')) {
-                let calcData = evaluateFormulaMath(item.formula, itemsMap);
+                // Passamos item.codigo para a função de avaliação saber quem é o resultado final
+                let calcData = evaluateFormulaMath(item.formula, itemsMap, item.codigo);
                 item.calculatedValue = calcData.val;
                 item.memoryHtml = calcData.mem;
                 item.involvedIds = calcData.ids;
@@ -716,7 +741,7 @@
         renderTabFormulasMath(rules, seqPdf);
     }
 
-    function evaluateFormulaMath(formulaStr, itemsMap) {
+    function evaluateFormulaMath(formulaStr, itemsMap, formulaId) {
         if (!formulaStr) return { val: 0, mem: '', ids: [] };
         let cleanExp = formulaStr.replace(/\([^)]+\)/g, '').trim().replace(/\s+/g, ''); 
         let tokenRegex = /([\+\-]?)(\d+)/g;
@@ -729,21 +754,21 @@
             if (itemsMap.has(id)) {
                 involvedIds.push(id);
                 let rawVal = itemsMap.get(id).calculatedValue || 0;
-                let valToApply = (operator === '-') ? -Math.abs(rawVal) : rawVal;
-                result += valToApply;
+                result += rawVal;
                 
-                let displaySign = valToApply < 0 ? '-' : '+';
-                let color = valToApply < 0 ? 'var(--danger)' : 'var(--success)';
-                let cleanBrl = formatBRL(Math.abs(valToApply)).replace(/[R\$\(\)\s]/g, '').trim(); 
+                let operandValue = (operator === '-') ? -rawVal : rawVal;
+                let color = rawVal < 0 ? 'var(--danger)' : 'var(--success)';
+                let formattedOperand = formatBRL(operandValue); 
                 
                 if (memHtml !== '') {
-                    memHtml += ` <span style="font-weight: 700; color: var(--text-main);">${displaySign}</span> `;
-                } else if (valToApply < 0) {
+                    memHtml += ` <span style="font-weight: 700; color: var(--text-main);">${operator}</span> `;
+                } else if (operator === '-') {
                     memHtml += `<span style="font-weight: 700; color: var(--text-main);">-</span> `;
                 }
                 
-                memHtml += `<span class="math-token" onmouseover="highlightRow(${id})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, true, this)">
-                               <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${color}; font-weight: 700;">R$ ${cleanBrl}</span>
+                // Passamos o formulaId para a highlightRow saber quem é o resultado a ser pintado de azul/roxo
+                memHtml += `<span class="math-token" onmouseover="highlightRow(${id}, ${formulaId})" onmouseout="clearHighlights()" onclick="highlightRow(${id}, ${formulaId}, true, this)">
+                               <span style="font-size:0.75rem; color:#8ba3bb;">[${id}]</span> <span style="color: ${color}; font-weight: 700;">${formattedOperand}</span>
                             </span>`;
             }
         }
@@ -813,13 +838,14 @@
                 let finalResultSign = calcValue < 0 ? '- ' : '';
                 let cleanBrlResult = formatBRL(Math.abs(calcValue)).replace(/[R\$\(\)\s]/g, '').trim();
 
+                // Passa rule.codigo para destacar a linha do resultado de azul
                 tbody.innerHTML += `
                     <tr class="detail-row is-formula-detail ${safeClass} last-child" style="display: none;">
                         <td>↳ Memória de Cálculo ERP:</td>
                         <td colspan="4" style="text-align: left;">
                             <div class="memoria-box">
-                                <div class="math-token-group" style="font-size: 0.95rem; color: #1e6153;"
-                                     onmouseover='highlightMultipleRows(${involvedIdsStr})' onmouseout='clearHighlights()' onclick='highlightMultipleRows(${involvedIdsStr}, true, this.closest(".memoria-box"))'>
+                                <div class="math-token-group" style="font-size: 0.85rem; color: #1e6153;"
+                                     onmouseover='highlightMultipleRows(${involvedIdsStr}, ${rule.codigo})' onmouseout='clearHighlights()' onclick='highlightMultipleRows(${involvedIdsStr}, ${rule.codigo}, true, this.closest(".memoria-box"))'>
                                     <b>Regra Original:</b> ${formulaStr}
                                 </div>
                                 <div style="color: var(--text-main); font-size: 0.85rem;">
